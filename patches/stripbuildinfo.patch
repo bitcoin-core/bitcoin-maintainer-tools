@@ -1,0 +1,28 @@
+diff --git a/src/clientversion.cpp b/src/clientversion.cpp
+index bfe9e16..b4d704b 100644
+--- a/src/clientversion.cpp
++++ b/src/clientversion.cpp
+@@ -67,7 +67,7 @@ const std::string CLIENT_NAME("Satoshi");
+ #endif
+ #endif
+ 
+-const std::string CLIENT_BUILD(BUILD_DESC CLIENT_VERSION_SUFFIX);
++const std::string CLIENT_BUILD("");
+ 
+ static std::string FormatVersion(int nVersion)
+ {
+diff --git a/src/main.cpp b/src/main.cpp
+index 30edc5d..47d3c54 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -50,10 +50,6 @@
+ 
+ using namespace std;
+ 
+-#if defined(NDEBUG)
+-# error "Bitcoin cannot be compiled without assertions."
+-#endif
+-
+ /**
+  * Global state
+  */
