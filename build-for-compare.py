@@ -22,6 +22,7 @@ CONFIGURE_EXTRA=[
 'EVENT_PTHREADS_LIBS=-L/opt/libevent/lib -levent_pthreads'
 ]
 DEFAULT_PARALLELISM=4
+DEFAULT_ASSERTIONS=0
 
 # No debugging information (not used by analysis at the moment, saves on I/O)
 OPTFLAGS=["-O0","-g0"]
@@ -176,6 +177,7 @@ def parse_arguments():
     parser.add_argument('--executables', default='src/bitcoind', help='Comma-separated list of executables to build, default is "src/bitcoind"')
     parser.add_argument('--tgtdir', default=TGTDIR, help='Target directory, default is "'+TGTDIR+'"')
     parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is %s' % (DEFAULT_PARALLELISM))
+    parser.add_argument('--assertions', default=0, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
     args = parser.parse_args()
     args.executables = args.executables.split(',')
     return args
@@ -196,9 +198,14 @@ def main():
                 logger.error('%s is not a hexadecimal commit id. It\'s the only thing we know.' % commit)
                 exit(1)
 
+        # Determine (g)make arguments
         make_args = []
         if args.parallelism is not None:
             make_args += ['-j%i' % args.parallelism]
+        # Disable assertions if requested
+        cppflags = CPPFLAGS
+        if not args.assertions:
+            cppflags+=['-DNDEBUG']
 
         for commit in args.commitids:
             logger.info("Building %s..." % commit)
@@ -222,7 +229,7 @@ def main():
             check_call(['./autogen.sh'])
             logger.info('Running configure script')
             check_call(['./configure', '--disable-hardening', '--with-incompatible-bdb', '--without-cli', '--disable-tests', '--disable-ccache',
-                'CPPFLAGS='+(' '.join(CPPFLAGS)), 
+                'CPPFLAGS='+(' '.join(cppflags)), 
                 'CFLAGS='+(' '.join(OPTFLAGS)), 'CXXFLAGS='+(' '.join(OPTFLAGS)), 'LDFLAGS='+(' '.join(OPTFLAGS))] + CONFIGURE_EXTRA)
 
             for name in args.executables:
@@ -240,7 +247,7 @@ def main():
 
         if len(args.commitids)>1: 
             logger.info('Use this command to compare resulting directories:')
-            logger.info('$ git diff -W --word-diff /tmp/compare/%s /tmp/compare/%s' % (args.commitids[0], args.commitids[1]))
+            logger.info('$ git diff -W --word-diff %s %s' % (os.path.join(args.tgtdir,args.commitids[0]), os.path.join(args.tgtdir,args.commitids[1])))
     except Exception:
         logger.exception('Error:')
 
