@@ -12,7 +12,7 @@ logger = logging.getLogger('do_build')
 
 # WARNING WARNING WARNING
 #   DO NOT RUN this on working tree if you have any local additions, it will nuke all non-repository files, multiple times over.
-#   Ideally this would close a git tree first to a temporary directory. Suffice to say, it doesn't.
+#   Ideally this would clone a git tree first to a temporary directory. Suffice to say, it doesn't.
 # WARNING WARNING WARNING
 
 CONFIGURE_EXTRA=[
