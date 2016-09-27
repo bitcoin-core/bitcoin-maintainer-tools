@@ -1,11 +1,11 @@
 External repository for Bitcoin Core related maintenance tools.
 
-build_for_compare
+build-for-compare
 --------------------
 
 Build for binary comparison.
 
-See `build_for_compare.py --help` for more information.
+See `build-for-compare.py --help` for more information.
 
 Builds from current directory, which is assumed to be a git clone of the bitcoin repository.
 
