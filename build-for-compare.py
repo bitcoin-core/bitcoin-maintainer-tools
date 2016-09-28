@@ -246,7 +246,8 @@ def main():
             objdump_all(commitdir_obj, commitdir)
 
         if len(args.commitids)>1: 
-            logger.info('Use this command to compare resulting directories:')
+            logger.info('Use these commands to compare results:')
+            logger.info('$ sha256sum %s/*.stripped' % (os.path.join(args.tgtdir,args.commitids[0])))
             logger.info('$ git diff -W --word-diff %s %s' % (os.path.join(args.tgtdir,args.commitids[0]), os.path.join(args.tgtdir,args.commitids[1])))
     except Exception:
         logger.exception('Error:')
