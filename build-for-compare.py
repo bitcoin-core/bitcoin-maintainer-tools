@@ -3,7 +3,7 @@
 #
 # Usage: ../do_build.py <hash> [<hash> ...]
 # Will produce a ../bitcoind.$1.stripped for binary comparison
-import os,subprocess,sys,argparse,logging,shutil,re,hashlib
+import os,subprocess,sys,argparse,logging,shutil,re,hashlib,shlex
 from collections import defaultdict
 
 logger = logging.getLogger('do_build')
@@ -91,12 +91,17 @@ def init_logging():
     handler = MyStreamHandler(sys.stdout, formatters)
     logging.basicConfig(level=logging.DEBUG, handlers=[handler])
 
+def shell_split(s):
+    return shlex.split(s)
+def shell_join(s):
+    return ' '.join(shlex.quote(x) for x in s)
+
 def check_call(args):
     '''Wrapper for subprocess.check_call that logs what command failed'''
     try:
         subprocess.check_call(args)
     except Exception:
-        logger.error('Command failed: %s' % (' '.join(args)))
+        logger.error('Command failed: %s' % shell_join(args))
         raise
 
 def iterate_objs(srcdir):
@@ -178,8 +183,16 @@ def parse_arguments():
     parser.add_argument('--tgtdir', default=TGTDIR, help='Target directory, default is "'+TGTDIR+'"')
     parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is %s' % (DEFAULT_PARALLELISM))
     parser.add_argument('--assertions', default=0, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
+    parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
     args = parser.parse_args()
     args.executables = args.executables.split(',')
+    if args.opt is not None:
+        if not args.opt.startswith('+'):
+            print('"opt" argument must start with +', file=sys.stderr)
+            exit(1)
+        args.opt = shell_split(args.opt[1:])
+    else:
+        args.opt = OPTFLAGS
     return args
 
 def main():
@@ -228,9 +241,10 @@ def main():
 
             check_call(['./autogen.sh'])
             logger.info('Running configure script')
+            opt = shell_join(args.opt)
             check_call(['./configure', '--disable-hardening', '--with-incompatible-bdb', '--without-cli', '--disable-tests', '--disable-ccache',
                 'CPPFLAGS='+(' '.join(cppflags)), 
-                'CFLAGS='+(' '.join(OPTFLAGS)), 'CXXFLAGS='+(' '.join(OPTFLAGS)), 'LDFLAGS='+(' '.join(OPTFLAGS))] + CONFIGURE_EXTRA)
+                'CFLAGS='+opt, 'CXXFLAGS='+opt, 'LDFLAGS='+opt] + CONFIGURE_EXTRA)
 
             for name in args.executables:
                 logger.info('Building executable %s' % name)
