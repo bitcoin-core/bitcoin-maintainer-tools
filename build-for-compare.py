@@ -24,6 +24,7 @@ CONFIGURE_EXTRA=[
 DEFAULT_PARALLELISM=4
 DEFAULT_ASSERTIONS=0
 DEFAULT_PATCH='stripbuildinfo.patch'
+DEFAULT_TGTDIR='/tmp/compare'
 
 # No debugging information (not used by analysis at the moment, saves on I/O)
 OPTFLAGS=["-O0","-g0"]
@@ -66,7 +67,6 @@ OBJCOPY=os.getenv('OBJCOPY', 'objcopy')
 OBJDUMP=os.getenv('OBJDUMP', 'objdump')
 OBJEXT=os.getenv('OBJEXT', '.o') # object file extension
 
-TGTDIR='/tmp/compare'
 PYDIR=os.path.dirname(os.path.abspath(__file__))
 PATCHDIR=os.path.join(PYDIR,'patches')
 
@@ -91,6 +91,17 @@ def init_logging():
         formatters[level] = logging.Formatter(fmtstr)
     handler = MyStreamHandler(sys.stdout, formatters)
     logging.basicConfig(level=logging.DEBUG, handlers=[handler])
+
+def safe_path(path):
+    '''
+    Ensure dir is a path we can nuke without consequences.
+    This is currently restricted to /tmp/<anything>.
+    '''
+    abspath = os.path.abspath(path)
+    if abspath[0] != '/': return False # ???
+    comps = abspath[1:].split('/') # skip leading slash to avoid relying on empty first component
+    rootdir = comps[0]
+    return len(comps) > 1 and rootdir in ['tmp']
 
 def shell_split(s):
     return shlex.split(s)
@@ -181,9 +192,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Build to compare binaries. Execute this from a repository directory.')
     parser.add_argument('commitids', metavar='COMMITID', nargs='+')
     parser.add_argument('--executables', default='src/bitcoind', help='Comma-separated list of executables to build, default is "src/bitcoind"')
-    parser.add_argument('--tgtdir', default=TGTDIR, help='Target directory, default is "'+TGTDIR+'"')
+    parser.add_argument('--tgtdir', default=DEFAULT_TGTDIR, help='Target directory, default is "%s"' % (DEFAULT_TGTDIR))
     parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is %s' % (DEFAULT_PARALLELISM))
-    parser.add_argument('--assertions', default=0, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
+    parser.add_argument('--assertions', default=DEFAULT_ASSERTIONS, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
     parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
     parser.add_argument('--patches', '-P', default=None, type=str, help='Comma separated list of stripbuildinfo patches to apply, one per hash (in order).')
     args = parser.parse_args()
@@ -206,6 +217,12 @@ def main():
             os.makedirs(args.tgtdir)
         except FileExistsError:
             logger.warning("%s already exists, remove it if you don't want to continue a current comparison session" % args.tgtdir)
+            if safe_path(args.tgtdir):
+                dodelete = input("Delete %s? [y/n] " % args.tgtdir)
+                if dodelete == 'y' or dodelete == 'Y':
+                    # Remove target dir
+                    logger.info('Removing %s' % args.tgtdir)
+                    check_call(['rm', '-rf', args.tgtdir])
 
         for commit in args.commitids:
             try:
