@@ -9,8 +9,9 @@ See `build-for-compare.py --help` for more information.
 
 Builds from current directory, which is assumed to be a git clone of the bitcoin repository.
 
-**DO NOT RUN this on working tree if you have any local additions, it will nuke all non-repository files, multiple times
-over. Ideally this would clone a git tree first to a temporary directory. Suffice to say, it doesn't.**
+**DO NOT RUN this with the nocopy=1 flag set on working tree if you have any local additions, it will nuke all
+non-repository files, multiple times over. By leaving nocopy off (default) the git tree is copied to a temporary
+directory and all operations are performed there.**
 
 Example:
 ```bash
