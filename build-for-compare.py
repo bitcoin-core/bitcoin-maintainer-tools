@@ -232,7 +232,7 @@ def main():
             try:
                 os.makedirs(commitdir)
             except FileExistsError:
-                logger.error("%s already exists, remove it to continue" % commitdir)
+                logger.error("%s already exists, remove it to continue" % commitdir) 
                 exit(1)
             check_call([GIT,'reset','--hard'])
             check_call([GIT,'clean','-f','-x','-d'])
@@ -249,7 +249,7 @@ def main():
             logger.info('Running configure script')
             opt = shell_join(args.opt)
             check_call(['./configure', '--disable-hardening', '--with-incompatible-bdb', '--without-cli', '--disable-tests', '--disable-ccache',
-                'CPPFLAGS='+(' '.join(cppflags)),
+                'CPPFLAGS='+(' '.join(cppflags)), 
                 'CFLAGS='+opt, 'CXXFLAGS='+opt, 'LDFLAGS='+opt] + CONFIGURE_EXTRA)
 
             for name in args.executables:
@@ -265,7 +265,7 @@ def main():
             logger.info('Performing basic analysis pass...')
             objdump_all(commitdir_obj, commitdir)
 
-        if len(args.commitids)>1:
+        if len(args.commitids)>1: 
             logger.info('Use these commands to compare results:')
             logger.info('$ sha256sum %s/*.stripped' % (args.tgtdir))
             logger.info('$ git diff -W --word-diff %s %s' % (os.path.join(args.tgtdir,args.commitids[0]), os.path.join(args.tgtdir,args.commitids[1])))
@@ -274,3 +274,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

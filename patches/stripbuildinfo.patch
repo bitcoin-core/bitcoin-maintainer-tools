@@ -5,18 +5,20 @@ index bfe9e16..b4d704b 100644
 @@ -67,7 +67,7 @@ const std::string CLIENT_NAME("Satoshi");
  #endif
  #endif
-
+ 
 -const std::string CLIENT_BUILD(BUILD_DESC CLIENT_VERSION_SUFFIX);
 +const std::string CLIENT_BUILD("");
-
+ 
  static std::string FormatVersion(int nVersion)
  {
 diff --git a/src/main.cpp b/src/main.cpp
 index cb6e942..c3fa883 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -50,8 +50,4 @@
-
+@@ -50,10 +50,6 @@
+ 
+ using namespace std;
+ 
 -#if defined(NDEBUG)
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
@@ -34,20 +36,20 @@ index 7733910..48520d7 100644
  #endif
 -#define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, __LINE__, &cs)
 +#define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, 0, &cs)
-
+ 
  /**
   * Wrapped boost mutex: supports recursive locking, but no waiting
 @@ -174,13 +174,13 @@ typedef CMutexLock<CCriticalSection> CCriticalBlock;
  #define PASTE(x, y) x ## y
  #define PASTE2(x, y) PASTE(x, y)
-
+ 
 -#define LOCK(cs) CCriticalBlock PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, __LINE__)
 -#define LOCK2(cs1, cs2) CCriticalBlock criticalblock1(cs1, #cs1, __FILE__, __LINE__), criticalblock2(cs2, #cs2, __FILE__, __LINE__)
 -#define TRY_LOCK(cs, name) CCriticalBlock name(cs, #cs, __FILE__, __LINE__, true)
 +#define LOCK(cs) CCriticalBlock PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, 0)
 +#define LOCK2(cs1, cs2) CCriticalBlock criticalblock1(cs1, #cs1, __FILE__, 0), criticalblock2(cs2, #cs2, __FILE__, 0)
 +#define TRY_LOCK(cs, name) CCriticalBlock name(cs, #cs, __FILE__, 0, true)
-
+ 
  #define ENTER_CRITICAL_SECTION(cs)                            \
      {                                                         \
 -        EnterCritical(#cs, __FILE__, __LINE__, (void*)(&cs)); \
