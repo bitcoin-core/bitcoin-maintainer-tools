@@ -11,12 +11,27 @@ index bfe9e16..b4d704b 100644
  
  static std::string FormatVersion(int nVersion)
  {
-diff --git a/src/main.cpp b/src/main.cpp
-index cb6e942..c3fa883 100644
---- a/src/main.cpp
-+++ b/src/main.cpp
-@@ -50,10 +50,6 @@
+diff --git a/src/net_processing.cpp b/src/net_processing.cpp
+index 7471672..ab6a0d5 100644
+--- a/src/net_processing.cpp
++++ b/src/net_processing.cpp
+@@ -34,10 +34,6 @@
  
+ using namespace std;
+ 
+-#if defined(NDEBUG)
+-# error "Bitcoin cannot be compiled without assertions."
+-#endif
+-
+ int64_t nTimeBestReceived = 0; // Used only to inform the wallet of when we last received a block
+ 
+ struct IteratorComparator
+diff --git a/src/validation.cpp b/src/validation.cpp
+index a31fba4..f473cec 100644
+--- a/src/validation.cpp
++++ b/src/validation.cpp
+@@ -45,10 +45,6 @@
+
  using namespace std;
  
 -#if defined(NDEBUG)
