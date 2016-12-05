@@ -11,8 +11,8 @@ logger = logging.getLogger('do_build')
 # git diff -W --word-diff /tmp/compare/4b5b263 /tmp/compare/d1bc5bf
 
 # WARNING WARNING WARNING
-#   DO NOT RUN this on working tree if you have any local additions, it will nuke all non-repository files, multiple times over.
-#   Ideally this would clone a git tree first to a temporary directory. Suffice to say, it doesn't.
+#   DO NOT RUN this with --nocopy=1 on working tree if you have any local additions.
+#   It will nuke all non-repository files, multiple times over.
 # WARNING WARNING WARNING
 
 CONFIGURE_EXTRA=[
@@ -23,8 +23,10 @@ CONFIGURE_EXTRA=[
 ]
 DEFAULT_PARALLELISM=4
 DEFAULT_ASSERTIONS=0
+DEFAULT_NOCOPY=0
 DEFAULT_PATCH='stripbuildinfo.patch'
 DEFAULT_TGTDIR='/tmp/compare'
+DEFAULT_REPODIR='/tmp/repo'
 
 # No debugging information (not used by analysis at the moment, saves on I/O)
 OPTFLAGS=["-O0","-g0"]
@@ -63,6 +65,7 @@ OBJDUMP_ARGS=['-C','--no-show-raw-insn','-d','-r']
 # These can be overridden from the environment
 GIT=os.getenv('GIT', 'git')
 MAKE=os.getenv('MAKE', 'make')
+RSYNC=os.getenv('RSYNC', 'rsync')
 OBJCOPY=os.getenv('OBJCOPY', 'objcopy')
 OBJDUMP=os.getenv('OBJDUMP', 'objdump')
 OBJEXT=os.getenv('OBJEXT', '.o') # object file extension
@@ -115,6 +118,15 @@ def check_call(args):
     except Exception:
         logger.error('Command failed: %s' % shell_join(args))
         raise
+
+def cmd_exists(cmd):
+    '''Determine if a given command is available. Requires "which".'''
+    try:
+        with open(os.devnull, 'w') as FNULL:
+            subprocess.check_call(['which', cmd], stdout=FNULL)
+    except:
+        return False
+    return True
 
 def iterate_objs(srcdir):
     '''Iterate over all object files in srcdir'''
@@ -193,10 +205,12 @@ def parse_arguments():
     parser.add_argument('commitids', metavar='COMMITID', nargs='+')
     parser.add_argument('--executables', default='src/bitcoind', help='Comma-separated list of executables to build, default is "src/bitcoind"')
     parser.add_argument('--tgtdir', default=DEFAULT_TGTDIR, help='Target directory, default is "%s"' % (DEFAULT_TGTDIR))
+    parser.add_argument('--repodir', default=DEFAULT_REPODIR, help='Temp repository directory, default is "%s"' % (DEFAULT_REPODIR))
     parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is %s' % (DEFAULT_PARALLELISM))
     parser.add_argument('--assertions', default=DEFAULT_ASSERTIONS, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
     parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
     parser.add_argument('--patches', '-P', default=None, type=str, help='Comma separated list of stripbuildinfo patches to apply, one per hash (in order).')
+    parser.add_argument('--nocopy', default=DEFAULT_NOCOPY, type=int, help='Build directly in the repository. If unset, will rsync or copy the repository to /tmp/ first, default is %s' % (DEFAULT_NOCOPY))
     args = parser.parse_args()
     args.patches = dict(zip(args.commitids, [v.strip() for v in args.patches.split(',')])) if args.patches is not None else {}
     args.executables = args.executables.split(',')
@@ -207,6 +221,11 @@ def parse_arguments():
         args.opt = shell_split(args.opt[1:])
     else:
         args.opt = OPTFLAGS
+    # Safety checks
+    if not args.nocopy and not safe_path(args.repodir):
+        logger.error('Temp repository directory %s may not be used. Please use /tmp, e.g. "/tmp/%s"' % (args.repodir, args.repodir))
+        exit(1)
+
     return args
 
 def main():
@@ -230,6 +249,27 @@ def main():
             except ValueError:
                 logger.error('%s is not a hexadecimal commit id. It\'s the only thing we know.' % commit)
                 exit(1)
+
+        # Copy repo, unless nocopy is set
+        if not args.nocopy and safe_path(args.repodir):
+            if cmd_exists(RSYNC.split(' ')[0]):
+                logger.info('RSyncing repository ...')
+                check_call([RSYNC,
+                    '-r',           # recursive
+                    '--delete',     # delete extraneous files on dst
+                    '.git',         # from .git in CWD
+                    args.repodir])  # to repodir
+            else:
+                gitdir = os.path.join(args.repodir, '.git')
+                logger.warning('Command "rsync" not found; resorting to cp, which tends to be slower.')
+                logger.info('Copying repository ...')
+                # Touch (to avoid file not found) and remove repodir/.git so we don't end up with repodir/.git/.git
+                check_call(['mkdir','-p',args.repodir])
+                check_call(['touch',gitdir])
+                check_call(['rm','-rf',gitdir])
+                check_call(['cp','-r','.git',args.repodir])
+            # Go to repo
+            os.chdir(args.repodir)
 
         # Determine (g)make arguments
         make_args = []
