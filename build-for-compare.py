@@ -23,6 +23,7 @@ CONFIGURE_EXTRA=[
 ]
 DEFAULT_PARALLELISM=4
 DEFAULT_ASSERTIONS=0
+DEFAULT_PATCH='stripbuildinfo.patch'
 
 # No debugging information (not used by analysis at the moment, saves on I/O)
 OPTFLAGS=["-O0","-g0"]
@@ -184,7 +185,9 @@ def parse_arguments():
     parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is %s' % (DEFAULT_PARALLELISM))
     parser.add_argument('--assertions', default=0, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
     parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
+    parser.add_argument('--patches', '-P', default=None, type=str, help='Comma separated list of stripbuildinfo patches to apply, one per hash (in order).')
     args = parser.parse_args()
+    args.patches = dict(zip(args.commitids, [v.strip() for v in args.patches.split(',')])) if args.patches is not None else {}
     args.executables = args.executables.split(',')
     if args.opt is not None:
         if not args.opt.startswith('+'):
@@ -222,6 +225,7 @@ def main():
 
         for commit in args.commitids:
             logger.info("Building %s..." % commit)
+            stripbuildinfopatch = args.patches[commit] if commit in args.patches else DEFAULT_PATCH
             commitdir = os.path.join(args.tgtdir, commit)
             commitdir_obj = os.path.join(args.tgtdir, commit+'.o')
 
@@ -234,7 +238,9 @@ def main():
             check_call([GIT,'clean','-f','-x','-d'])
             check_call([GIT,'checkout',commit])
             try:
-                check_call([GIT,'apply', os.path.join(PATCHDIR,'stripbuildinfo.patch')])
+                if commit in args.patches:
+                    logger.info('User-defined patch: %s' % (stripbuildinfopatch))
+                check_call([GIT,'apply', os.path.join(PATCHDIR,stripbuildinfopatch)])
             except subprocess.CalledProcessError:
                 logger.error('Could not apply patch to strip build info. Probably it needs to be updated')
                 exit(1)
