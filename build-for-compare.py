@@ -249,8 +249,8 @@ def main():
             try:
                 os.makedirs(commitdir)
             except FileExistsError:
-                logger.error("%s already exists, remove it to continue" % commitdir) 
-                exit(1)
+                logger.error("%s already exists; skipping" % commitdir) 
+                continue
             check_call([GIT,'reset','--hard'])
             check_call([GIT,'clean','-f','-x','-d'])
             check_call([GIT,'checkout',commit])
