@@ -15,7 +15,7 @@ diff --git a/src/net_processing.cpp b/src/net_processing.cpp
 index 7471672..ab6a0d5 100644
 --- a/src/net_processing.cpp
 +++ b/src/net_processing.cpp
-@@ -34,10 +34,6 @@
+@@ -36,10 +36,6 @@
  
  using namespace std;
  
@@ -30,7 +30,7 @@ diff --git a/src/validation.cpp b/src/validation.cpp
 index a31fba4..f473cec 100644
 --- a/src/validation.cpp
 +++ b/src/validation.cpp
-@@ -45,10 +45,6 @@
+@@ -47,10 +47,6 @@
 
  using namespace std;
  
