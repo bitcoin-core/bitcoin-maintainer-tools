@@ -255,21 +255,19 @@ def main():
             if cmd_exists(RSYNC.split(' ')[0]):
                 logger.info('RSyncing repository ...')
                 check_call([RSYNC,
-                    '-r',                       # recursive
-                    '--delete',                 # delete extraneous files on dst
-                    '--exclude','*.[ao]',       # do not sync .a/.o files
-                    '--exclude','*.l[ao]',      # do not sync .la/.lo files
-                    '--exclude','.deps',        # do not sync .deps
-                    '--exclude','.tag*',        # do not sync .tag files
-                    '.',                        # from CWD
-                    args.repodir])              # to repodir
+                    '-r',           # recursive
+                    '--delete',     # delete extraneous files on dst
+                    '.git',         # from .git in CWD
+                    args.repodir])  # to repodir
             else:
+                gitdir = os.path.join(args.repodir, '.git')
                 logger.warning('Command "rsync" not found; resorting to cp, which tends to be slower.')
                 logger.info('Copying repository ...')
-                # Touch (to avoid file not found) and remove repodir so we don't end up with repodir/repo
-                check_call(['touch',args.repodir])
-                check_call(['rm','-rf',args.repodir])
-                check_call(['cp','-r','.',args.repodir])
+                # Touch (to avoid file not found) and remove repodir/.git so we don't end up with repodir/.git/.git
+                check_call(['mkdir','-p',args.repodir])
+                check_call(['touch',gitdir])
+                check_call(['rm','-rf',gitdir])
+                check_call(['cp','-r','.git',args.repodir])
             # Go to repo
             os.chdir(args.repodir)
 
