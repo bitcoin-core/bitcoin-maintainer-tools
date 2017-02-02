@@ -1,5 +1,15 @@
 External repository for Bitcoin Core related maintenance tools.
 
+clang-format
+------------
+
+A script to format cpp source code according to the .clang-format file in the bitcoin repo.
+This should only be applied to new files or files which are currently not actively developed on.
+Also, git subtrees are not subject to formatting.
+
+Note: The script is currently untested and unmaintained, but kept for archival reasons, in
+case it is planned to be used some day.
+
 build-for-compare
 --------------------
 
