@@ -21,7 +21,7 @@ index 7471672..ab6a0d5 100644
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
 -
- int64_t nTimeBestReceived = 0; // Used only to inform the wallet of when we last received a block
+ std::atomic<int64_t> nTimeBestReceived(0); // Used only to inform the wallet of when we last received a block
  
  struct IteratorComparator
 diff --git a/src/validation.cpp b/src/validation.cpp
