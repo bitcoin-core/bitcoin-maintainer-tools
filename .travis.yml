@@ -1,0 +1,23 @@
+sudo: required
+dist: trusty
+os: linux
+language: generic
+python:
+  - "3.6"
+cache:
+  directories:
+  - /tmp/bitcoin-maintainer-tools/clang-release-dl/
+  - /tmp/bitcoin-maintainer-tools/berkeley-db/
+env:
+  matrix:
+    - TEST_SCRIPT="test/test_clone_configure_build.py"
+    - TEST_SCRIPT="test/test_clang_static_analysis.py"
+    - TEST_SCRIPT="test/test_reports.py"
+    - TEST_SCRIPT="test/test_checks.py"
+    - TEST_SCRIPT="test/test_basic_style.py"
+    - TEST_SCRIPT="test/test_clang_format.py"
+    - TEST_SCRIPT="test/test_copyright_header.py"
+install:
+    - travis_retry sudo apt-get install libboost-all-dev libevent-dev libprotobuf-dev clang-3.8
+script:
+    - travis_wait 60 $TEST_SCRIPT
