@@ -1,0 +1,27 @@
+{
+   "description" : "This json object describes the local details of the repository to guide how the tools operate.",
+   "subtrees" : {
+      "description" : "Subtrees of the repository which should be ignored since they follow different rules. Expressed as a list of fmnmatch expressions.",
+      "fnmatches" : [
+      ]
+   },
+   "no_copyright_header_expected" : {
+      "description" : "Source files where it is acceptable to not have a MIT Licence copyright header. Expressed as a list of fnmatch expressions.",
+      "fnmatches" : [
+         "*__init__.py",
+         "build-for-compare.py",
+         "clang-format.py"
+      ]
+   },
+   "other_copyright_occurrences_expected" : {
+      "description" : "Files where it is expected to have an occurrence of the sequence of characters 'Copyright', 'COPYRIGHT', or 'copyright' in the file outside of the MIT Licence copyright header. This list helps to ensures we are keeping close track where there may be external considerations for licence and copyright. Expressed as a list of fnmatch expressions.",
+      "fnmatches" : [
+         "bin/checks.py",
+         "bin/reports.py",
+         "bin/copyright_header.py",
+         "test/test_all.py",
+         "test/test_copyright_header.py",
+         "clang-format.py"
+      ]
+   }
+}

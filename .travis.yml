@@ -17,6 +17,8 @@ env:
     - TEST_SCRIPT="test/test_basic_style.py"
     - TEST_SCRIPT="test/test_clang_format.py"
     - TEST_SCRIPT="test/test_copyright_header.py"
+    - TEST_SCRIPT="bin/basic_style.py check bin/ framework/ test/"
+    - TEST_SCRIPT="bin/copyright_header.py check"
 install:
     - travis_retry sudo apt-get install libboost-all-dev libevent-dev libprotobuf-dev clang-3.8
 script:
