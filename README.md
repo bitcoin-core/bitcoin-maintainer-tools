@@ -31,3 +31,19 @@ cd bitcoin-compare
 sha256sum /tmp/compare/bitcoind.*.stripped
 git diff -W --word-diff /tmp/compare/4731cab /tmp/compare/2f71490
 ```
+
+unittest-statistics
+--------------------------
+
+`unittest-statistics.py` can be used to print a table of the slowest 20 unit tests.
+
+Usage:
+```bash
+unittest-statistics.py </path/to/test_bitcoin> [<subtest>]
+```
+
+For example:
+```bash
+unittest-statistics.py src/test/test_bitcoin wallet_tests
+```
+
