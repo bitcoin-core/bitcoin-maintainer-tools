@@ -47,3 +47,17 @@ For example:
 unittest-statistics.py src/test/test_bitcoin wallet_tests
 ```
 
+treehash512
+--------------
+
+This script will show the SHA512 tree has for a certain commit, or HEAD
+by default.
+
+Usage:
+
+```bash
+treehash512.py [<commithash>]
+```
+
+This should match the Tree-SHA512 commit metadata field added by
+github-merge.
