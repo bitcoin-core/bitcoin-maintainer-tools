@@ -32,6 +32,14 @@ sha256sum /tmp/compare/bitcoind.*.stripped
 git diff -W --word-diff /tmp/compare/4731cab /tmp/compare/2f71490
 ```
 
+backport
+--------
+
+Script to backport pull requests in order of merge, to minimize number of conflicts.
+Pull ids are listed in `to_backport.txt` or given on the command line.
+
+Requires `pip3 install gitpython` or similar.
+
 unittest-statistics
 --------------------------
 
