@@ -61,3 +61,24 @@ treehash512.py [<commithash>]
 
 This should match the Tree-SHA512 commit metadata field added by
 github-merge.
+
+signoff
+----------
+
+This is an utility to manually add a treehash to the HEAD commit and then
+gpg-sign it. This is useful when there is the need to manually add a commit.
+
+Usage:
+
+```bash
+signoff.py
+```
+(no command line arguments)
+
+When there is already a treehash on the HEAD commit, it is compared against
+what is computed. If this matches, it continues. If the treehash mismatches an
+error is thrown. If there is no treehash it adds the "Tree-SHA512:" header with
+the computed hash to the commit message.
+
+After making sure the treehash is correct it verifies whether the commit is
+signed. If so it just displays the signature, if not, it is signed.
