@@ -90,3 +90,32 @@ the computed hash to the commit message.
 
 After making sure the treehash is correct it verifies whether the commit is
 signed. If so it just displays the signature, if not, it is signed.
+
+check-dnsseeds
+---------------
+
+Sanity-check the DNS seeds used by Bitcoin Core.
+
+Usage:
+
+```bash
+check-dnsseeds.py
+```
+
+Example output:
+
+```bash
+* Mainnet
+OK   seed.bitcoin.sipa.be (40 results)
+OK   dnsseed.bluematt.me (33 results)
+OK   dnsseed.bitcoin.dashjr.org (38 results)
+OK   seed.bitcoinstats.com (50 results)
+OK   bitseed.xf2.org (13 results)
+FAIL seed.bitcoin.jonasschnelli.ch
+
+* Testnet
+FAIL testnet-seed.bitcoin.jonasschnelli.ch
+OK   seed.tbtc.petertodd.org (38 results)
+OK   testnet-seed.bluematt.me (3 results)
+```
+
