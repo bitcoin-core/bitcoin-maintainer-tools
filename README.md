@@ -91,6 +91,19 @@ the computed hash to the commit message.
 After making sure the treehash is correct it verifies whether the commit is
 signed. If so it just displays the signature, if not, it is signed.
 
+subtree updates
+---------------
+
+Bitcoin Core comes with several subtrees (c.f. https://github.com/bitcoin/bitcoin/blob/master/contrib/devtools/README.md#git-subtree-checksh)
+To update the subtree, make sure to fetch the remote of the subtree.
+Then a simple call should pull in and squash the changes:
+
+```sh
+git subtree pull --prefix src/${prefix} ${remote_repo} ${ref} --squash
+```
+
+For setting up a subtree, refer to `git help subtree`.
+
 check-dnsseeds
 ---------------
 
