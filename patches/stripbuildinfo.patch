@@ -1,21 +1,23 @@
 diff --git a/src/clientversion.cpp b/src/clientversion.cpp
-index bfe9e16..b4d704b 100644
+index 662fbb6..33be4d9 100644
 --- a/src/clientversion.cpp
 +++ b/src/clientversion.cpp
-@@ -67,7 +67,7 @@ const std::string CLIENT_NAME("Satoshi");
+@@ -66,7 +66,7 @@ const std::string CLIENT_NAME("Satoshi");
  #endif
  #endif
-
+ 
 -const std::string CLIENT_BUILD(BUILD_DESC CLIENT_VERSION_SUFFIX);
 +const std::string CLIENT_BUILD("");
-
+ 
  static std::string FormatVersion(int nVersion)
  {
 diff --git a/src/net_processing.cpp b/src/net_processing.cpp
-index 7471672..ab6a0d5 100644
+index 6aa4bab..9b68f99 100644
 --- a/src/net_processing.cpp
 +++ b/src/net_processing.cpp
-@@ -34,8 +34,4 @@
+@@ -32,10 +32,6 @@
+ 
+ #include <memory>
  
 -#if defined(NDEBUG)
 -# error "Bitcoin cannot be compiled without assertions."
@@ -25,48 +27,50 @@ index 7471672..ab6a0d5 100644
  
  struct IteratorComparator
 diff --git a/src/validation.cpp b/src/validation.cpp
-index a31fba4..f473cec 100644
+index b3d1fcf..17640ee 100644
 --- a/src/validation.cpp
 +++ b/src/validation.cpp
-@@ -45,10 +45,6 @@
- #include <boost/math/distributions/poisson.hpp>
+@@ -46,10 +46,6 @@
+ #include <boost/algorithm/string/join.hpp>
  #include <boost/thread.hpp>
  
 -#if defined(NDEBUG)
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
 -
- /**
-  * Global state
-  */
+ #define MICRO 0.000001
+ #define MILLI 0.001
+ 
 diff --git a/src/sync.h b/src/sync.h
-index 7733910..48520d7 100644
+index 3c451af..38d50d5 100644
 --- a/src/sync.h
 +++ b/src/sync.h
-@@ -83,7 +83,7 @@ void static inline LeaveCritical() {}
- void static inline AssertLockHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) {}
+@@ -84,8 +84,8 @@ void static inline AssertLockHeldInternal(const char* pszName, const char* pszFi
+ void static inline AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) {}
  void static inline DeleteLock(void* cs) {}
  #endif
 -#define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, __LINE__, &cs)
+-#define AssertLockNotHeld(cs) AssertLockNotHeldInternal(#cs, __FILE__, __LINE__, &cs)
 +#define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, 0, &cs)
-
++#define AssertLockNotHeld(cs) AssertLockNotHeldInternal(#cs, __FILE__, 0, &cs)
+ 
  /**
-  * Wrapped boost mutex: supports recursive locking, but no waiting
-@@ -174,13 +174,13 @@ typedef CMutexLock<CCriticalSection> CCriticalBlock;
+  * Wrapped mutex: supports recursive locking, but no waiting
+@@ -175,13 +175,13 @@ public:
  #define PASTE(x, y) x ## y
  #define PASTE2(x, y) PASTE(x, y)
-
+ 
 -#define LOCK(cs) CCriticalBlock PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, __LINE__)
 -#define LOCK2(cs1, cs2) CCriticalBlock criticalblock1(cs1, #cs1, __FILE__, __LINE__), criticalblock2(cs2, #cs2, __FILE__, __LINE__)
 -#define TRY_LOCK(cs, name) CCriticalBlock name(cs, #cs, __FILE__, __LINE__, true)
 +#define LOCK(cs) CCriticalBlock PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, 0)
 +#define LOCK2(cs1, cs2) CCriticalBlock criticalblock1(cs1, #cs1, __FILE__, 0), criticalblock2(cs2, #cs2, __FILE__, 0)
 +#define TRY_LOCK(cs, name) CCriticalBlock name(cs, #cs, __FILE__, 0, true)
-
+ 
  #define ENTER_CRITICAL_SECTION(cs)                            \
      {                                                         \
 -        EnterCritical(#cs, __FILE__, __LINE__, (void*)(&cs)); \
-+        EnterCritical(#cs, __FILE__, 0, (void*)(&cs)); \
++        EnterCritical(#cs, __FILE__, 0, (void*)(&cs));        \
          (cs).lock();                                          \
      }
  
