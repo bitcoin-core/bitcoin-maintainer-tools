@@ -20,7 +20,7 @@ def main():
         if not line:
             break
         line = line.decode()
-        m = re.match('.*"(.*)".*: ([0-9]+)(us|mks|ms)', line)
+        m = re.match('.*Leaving test case "(.*)".*: ([0-9]+)(us|mks|ms)', line)
         if m:
             if m.group(3) == 'ms':
                 elapsed = int(m.group(2)) * 1000
