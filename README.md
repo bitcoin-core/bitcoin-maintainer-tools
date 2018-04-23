@@ -132,3 +132,22 @@ OK   seed.tbtc.petertodd.org (38 results)
 OK   testnet-seed.bluematt.me (3 results)
 ```
 
+fastcopy-chaindata
+-------------------
+
+Fast local copy of Bitcoin Core blockchain state.
+
+```bash
+fastcopy-chaindata.py ~/.bitcoin /path/to/temp/datadir
+```
+
+This utility hardlinks all but the last block data file (rev and blk),
+and hardlinks all .ldb files to the destination. The last data files as well
+as the other leveldb data files (such as the log) are copied.
+
+This relies on the fact that block files (except the last) and ldb files
+are read-only once they are written.
+
+Warning: Hardlinking only works within a filesystem, and may not work for all
+filesystems.
+
