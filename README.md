@@ -94,7 +94,7 @@ signed. If so it just displays the signature, if not, it is signed.
 subtree updates
 ---------------
 
-Bitcoin Core comes with several subtrees (c.f. https://github.com/bitcoin/bitcoin/blob/master/contrib/devtools/README.md#git-subtree-checksh)
+Bitcoin Core comes with several subtrees (c.f. https://github.com/bitcoin/bitcoin/tree/master/test/lint#git-subtree-checksh)
 To update the subtree, make sure to fetch the remote of the subtree.
 Then a simple call should pull in and squash the changes:
 
