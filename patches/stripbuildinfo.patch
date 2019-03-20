@@ -1,5 +1,17 @@
+diff --git a/src/bench/bench.h b/src/bench/bench.h
+index 35eeab339..c640eceb5 100644
+--- a/src/bench/bench.h
++++ b/src/bench/bench.h
+@@ -137,6 +137,6 @@ private:
+ // Choose a num_iters_for_one_second that takes roughly 1 second. The goal is that all benchmarks should take approximately
+ // the same time, and scaling factor can be used that the total time is appropriate for your system.
+ #define BENCHMARK(n, num_iters_for_one_second) \
+-    benchmark::BenchRunner BOOST_PP_CAT(bench_, BOOST_PP_CAT(__LINE__, n))(BOOST_PP_STRINGIZE(n), n, (num_iters_for_one_second));
++    benchmark::BenchRunner BOOST_PP_CAT(bench_, BOOST_PP_CAT(0, n))(BOOST_PP_STRINGIZE(n), n, (num_iters_for_one_second));
+ 
+ #endif // BITCOIN_BENCH_BENCH_H
 diff --git a/src/clientversion.cpp b/src/clientversion.cpp
-index 662fbb6..33be4d9 100644
+index 5d9eaea6d..c3d1c4fcc 100644
 --- a/src/clientversion.cpp
 +++ b/src/clientversion.cpp
 @@ -66,7 +66,7 @@ const std::string CLIENT_NAME("Satoshi");
@@ -11,8 +23,35 @@ index 662fbb6..33be4d9 100644
  
  static std::string FormatVersion(int nVersion)
  {
+diff --git a/src/compat/assumptions.h b/src/compat/assumptions.h
+index 6e7b4d3de..51358db29 100644
+--- a/src/compat/assumptions.h
++++ b/src/compat/assumptions.h
+@@ -13,9 +13,6 @@
+ // Assumption: We assume that the macro NDEBUG is not defined.
+ // Example(s): We use assert(...) extensively with the assumption of it never
+ //             being a noop at runtime.
+-#if defined(NDEBUG)
+-# error "Bitcoin cannot be compiled without assertions."
+-#endif
+ 
+ // Assumption: We assume a C++11 (ISO/IEC 14882:2011) compiler (minimum requirement).
+ // Example(s): We assume the presence of C++11 features everywhere :-)
+diff --git a/src/interfaces/chain.cpp b/src/interfaces/chain.cpp
+index 2eecea28d..37ca84759 100644
+--- a/src/interfaces/chain.cpp
++++ b/src/interfaces/chain.cpp
+@@ -166,7 +166,7 @@ class ChainImpl : public Chain
+ public:
+     std::unique_ptr<Chain::Lock> lock(bool try_lock) override
+     {
+-        auto result = MakeUnique<LockingStateImpl>(::cs_main, "cs_main", __FILE__, __LINE__, try_lock);
++        auto result = MakeUnique<LockingStateImpl>(::cs_main, "cs_main", __FILE__, 0, try_lock);
+         if (try_lock && result && !*result) return {};
+         // std::move necessary on some compilers due to conversion from
+         // LockingStateImpl to Lock pointer
 diff --git a/src/net_processing.cpp b/src/net_processing.cpp
-index 6aa4bab..9b68f99 100644
+index a37451e39..d8a76d1c0 100644
 --- a/src/net_processing.cpp
 +++ b/src/net_processing.cpp
 @@ -32,10 +32,6 @@
@@ -23,29 +62,27 @@ index 6aa4bab..9b68f99 100644
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
 -
- std::atomic<int64_t> nTimeBestReceived(0); // Used only to inform the wallet of when we last received a block
- 
- struct IteratorComparator
-diff --git a/src/validation.cpp b/src/validation.cpp
-index b3d1fcf..17640ee 100644
---- a/src/validation.cpp
-+++ b/src/validation.cpp
-@@ -46,10 +46,6 @@
- #include <boost/algorithm/string/join.hpp>
- #include <boost/thread.hpp>
- 
--#if defined(NDEBUG)
--# error "Bitcoin cannot be compiled without assertions."
--#endif
--
- #define MICRO 0.000001
- #define MILLI 0.001
- 
+ /** Expiration time for orphan transactions in seconds */
+ static constexpr int64_t ORPHAN_TX_EXPIRE_TIME = 20 * 60;
+ /** Minimum time between orphan transactions expire time checks in seconds */
+diff --git a/src/sync.cpp b/src/sync.cpp
+index 23ca866e5..28ac7b6e8 100644
+--- a/src/sync.cpp
++++ b/src/sync.cpp
+@@ -105,7 +105,7 @@ static void potential_deadlock_detected(const std::pair<void*, void*>& mismatch,
+         LogPrintf(" %s\n", i.second.ToString());
+     }
+     if (g_debug_lockorder_abort) {
+-        fprintf(stderr, "Assertion failed: detected inconsistent lock order at %s:%i, details in debug log.\n", __FILE__, __LINE__);
++        fprintf(stderr, "Assertion failed: detected inconsistent lock order at %s:%i, details in debug log.\n", __FILE__, 0);
+         abort();
+     }
+     throw std::logic_error("potential deadlock detected");
 diff --git a/src/sync.h b/src/sync.h
-index 3c451af..38d50d5 100644
+index 3857eda56..450ff5325 100644
 --- a/src/sync.h
 +++ b/src/sync.h
-@@ -84,8 +84,8 @@ void static inline AssertLockHeldInternal(const char* pszName, const char* pszFi
+@@ -67,8 +67,8 @@ void static inline AssertLockHeldInternal(const char* pszName, const char* pszFi
  void static inline AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) {}
  void static inline DeleteLock(void* cs) {}
  #endif
@@ -55,17 +92,22 @@ index 3c451af..38d50d5 100644
 +#define AssertLockNotHeld(cs) AssertLockNotHeldInternal(#cs, __FILE__, 0, &cs)
  
  /**
-  * Wrapped mutex: supports recursive locking, but no waiting
-@@ -175,13 +175,13 @@ public:
+  * Template mixin that adds -Wthread-safety locking annotations and lock order
+@@ -179,16 +179,16 @@ using DebugLock = UniqueLock<typename std::remove_reference<typename std::remove
  #define PASTE(x, y) x ## y
  #define PASTE2(x, y) PASTE(x, y)
  
--#define LOCK(cs) CCriticalBlock PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, __LINE__)
--#define LOCK2(cs1, cs2) CCriticalBlock criticalblock1(cs1, #cs1, __FILE__, __LINE__), criticalblock2(cs2, #cs2, __FILE__, __LINE__)
--#define TRY_LOCK(cs, name) CCriticalBlock name(cs, #cs, __FILE__, __LINE__, true)
-+#define LOCK(cs) CCriticalBlock PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, 0)
-+#define LOCK2(cs1, cs2) CCriticalBlock criticalblock1(cs1, #cs1, __FILE__, 0), criticalblock2(cs2, #cs2, __FILE__, 0)
-+#define TRY_LOCK(cs, name) CCriticalBlock name(cs, #cs, __FILE__, 0, true)
+-#define LOCK(cs) DebugLock<decltype(cs)> PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, __LINE__)
++#define LOCK(cs) DebugLock<decltype(cs)> PASTE2(criticalblock, __COUNTER__)(cs, #cs, __FILE__, 0)
+ #define LOCK2(cs1, cs2)                                               \
+-    DebugLock<decltype(cs1)> criticalblock1(cs1, #cs1, __FILE__, __LINE__); \
+-    DebugLock<decltype(cs2)> criticalblock2(cs2, #cs2, __FILE__, __LINE__);
+-#define TRY_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, __LINE__, true)
+-#define WAIT_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, __LINE__)
++    DebugLock<decltype(cs1)> criticalblock1(cs1, #cs1, __FILE__, 0); \
++    DebugLock<decltype(cs2)> criticalblock2(cs2, #cs2, __FILE__, 0);
++#define TRY_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, 0, true)
++#define WAIT_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, 0)
  
  #define ENTER_CRITICAL_SECTION(cs)                            \
      {                                                         \
@@ -73,4 +115,19 @@ index 3c451af..38d50d5 100644
 +        EnterCritical(#cs, __FILE__, 0, (void*)(&cs));        \
          (cs).lock();                                          \
      }
+ 
+diff --git a/src/validation.cpp b/src/validation.cpp
+index a9b5bcf4a..1e13e651f 100644
+--- a/src/validation.cpp
++++ b/src/validation.cpp
+@@ -48,10 +48,6 @@
+ #include <boost/algorithm/string/replace.hpp>
+ #include <boost/thread.hpp>
+ 
+-#if defined(NDEBUG)
+-# error "Bitcoin cannot be compiled without assertions."
+-#endif
+-
+ #define MICRO 0.000001
+ #define MILLI 0.001
  
