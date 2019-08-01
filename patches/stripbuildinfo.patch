@@ -41,15 +41,15 @@ diff --git a/src/interfaces/chain.cpp b/src/interfaces/chain.cpp
 index 2eecea28d..37ca84759 100644
 --- a/src/interfaces/chain.cpp
 +++ b/src/interfaces/chain.cpp
-@@ -166,7 +166,7 @@ class ChainImpl : public Chain
+@@ -249,7 +249,7 @@ class ChainImpl : public Chain
  public:
      std::unique_ptr<Chain::Lock> lock(bool try_lock) override
      {
--        auto result = MakeUnique<LockingStateImpl>(::cs_main, "cs_main", __FILE__, __LINE__, try_lock);
-+        auto result = MakeUnique<LockingStateImpl>(::cs_main, "cs_main", __FILE__, 0, try_lock);
+-        auto result = MakeUnique<LockImpl>(::cs_main, "cs_main", __FILE__, __LINE__, try_lock);
++        auto result = MakeUnique<LockImpl>(::cs_main, "cs_main", __FILE__, 0, try_lock);
          if (try_lock && result && !*result) return {};
          // std::move necessary on some compilers due to conversion from
-         // LockingStateImpl to Lock pointer
+         // LockImpl to Lock pointer
 diff --git a/src/net_processing.cpp b/src/net_processing.cpp
 index a37451e39..d8a76d1c0 100644
 --- a/src/net_processing.cpp
@@ -69,12 +69,12 @@ diff --git a/src/sync.cpp b/src/sync.cpp
 index 23ca866e5..28ac7b6e8 100644
 --- a/src/sync.cpp
 +++ b/src/sync.cpp
-@@ -105,7 +105,7 @@ static void potential_deadlock_detected(const std::pair<void*, void*>& mismatch,
+@@ -76,7 +76,7 @@ static void potential_deadlock_detected(const std::pair<void*, void*>& mismatch,
          LogPrintf(" %s\n", i.second.ToString());
      }
      if (g_debug_lockorder_abort) {
--        fprintf(stderr, "Assertion failed: detected inconsistent lock order at %s:%i, details in debug log.\n", __FILE__, __LINE__);
-+        fprintf(stderr, "Assertion failed: detected inconsistent lock order at %s:%i, details in debug log.\n", __FILE__, 0);
+-        tfm::format(std::cerr, "Assertion failed: detected inconsistent lock order at %s:%i, details in debug log.\n", __FILE__, __LINE__);
++        tfm::format(std::cerr, "Assertion failed: detected inconsistent lock order at %s:%i, details in debug log.\n", __FILE__, 0);
          abort();
      }
      throw std::logic_error("potential deadlock detected");

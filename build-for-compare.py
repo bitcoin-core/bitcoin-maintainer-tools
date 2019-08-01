@@ -5,6 +5,7 @@
 # Will produce a ../bitcoind.$1.stripped for binary comparison
 import os,subprocess,sys,argparse,logging,shutil,re,hashlib,shlex
 from collections import defaultdict
+from typing import List
 
 logger = logging.getLogger('do_build')
 # Use this command to compare resulting directories
@@ -95,7 +96,7 @@ def init_logging():
     handler = MyStreamHandler(sys.stdout, formatters)
     logging.basicConfig(level=logging.DEBUG, handlers=[handler])
 
-def safe_path(path):
+def safe_path(path: str) -> bool:
     '''
     Ensure dir is a path we can nuke without consequences.
     This is currently restricted to /tmp/<anything>.
@@ -106,20 +107,20 @@ def safe_path(path):
     rootdir = comps[0]
     return len(comps) > 1 and rootdir in ['tmp']
 
-def shell_split(s):
+def shell_split(s: str) -> List[str]:
     return shlex.split(s)
-def shell_join(s):
+def shell_join(s) -> str:
     return ' '.join(shlex.quote(x) for x in s)
 
-def check_call(args):
+def check_call(args) -> int:
     '''Wrapper for subprocess.check_call that logs what command failed'''
     try:
         subprocess.check_call(args)
     except Exception:
-        logger.error('Command failed: %s' % shell_join(args))
+        logger.error('Command failed: {}'.format(shell_join(args)))
         raise
 
-def cmd_exists(cmd):
+def cmd_exists(cmd) -> bool:
     '''Determine if a given command is available. Requires "which".'''
     try:
         with open(os.devnull, 'w') as FNULL:
@@ -128,7 +129,7 @@ def cmd_exists(cmd):
         return False
     return True
 
-def iterate_objs(srcdir):
+def iterate_objs(srcdir) -> str:
     '''Iterate over all object files in srcdir'''
     for (root, dirs, files) in os.walk(srcdir):
         if not root.startswith(srcdir):
@@ -138,14 +139,14 @@ def iterate_objs(srcdir):
             if filename.endswith(OBJEXT):
                 yield os.path.join(root, filename)
 
-def copy_o_files(srcdir,tgtdir):
+def copy_o_files(srcdir: str, tgtdir: str):
     '''Copy all object files from srcdir to dstdir, keeping the same directory hierarchy'''
     for objname in iterate_objs(srcdir):
         outname = os.path.join(tgtdir, objname)
         os.makedirs(os.path.dirname(outname), exist_ok=True)
         shutil.copy(os.path.join(srcdir, objname), outname)
 
-def objdump_all(srcdir,tgtdir):
+def objdump_all(srcdir: str, tgtdir: str):
     '''
     Object analysis pass using objdump.
     '''
@@ -204,13 +205,14 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Build to compare binaries. Execute this from a repository directory.')
     parser.add_argument('commitids', metavar='COMMITID', nargs='+')
     parser.add_argument('--executables', default='src/bitcoind', help='Comma-separated list of executables to build, default is "src/bitcoind"')
-    parser.add_argument('--tgtdir', default=DEFAULT_TGTDIR, help='Target directory, default is "%s"' % (DEFAULT_TGTDIR))
-    parser.add_argument('--repodir', default=DEFAULT_REPODIR, help='Temp repository directory, default is "%s"' % (DEFAULT_REPODIR))
-    parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is %s' % (DEFAULT_PARALLELISM))
-    parser.add_argument('--assertions', default=DEFAULT_ASSERTIONS, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
+    parser.add_argument('--tgtdir', default=DEFAULT_TGTDIR, help='Target directory, default is "{}"'.format(DEFAULT_TGTDIR))
+    parser.add_argument('--repodir', default=DEFAULT_REPODIR, help='Temp repository directory, default is "{}"'.format(DEFAULT_REPODIR))
+    parser.add_argument('--parallelism', '-j', default=DEFAULT_PARALLELISM, type=int, help='Make parallelism, default is {}'.format(DEFAULT_PARALLELISM))
+    parser.add_argument('--assertions', default=DEFAULT_ASSERTIONS, type=int, help='Build with assertions, default is {}'.format(DEFAULT_ASSERTIONS))
     parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
     parser.add_argument('--patches', '-P', default=None, type=str, help='Comma separated list of stripbuildinfo patches to apply, one per hash (in order).')
-    parser.add_argument('--nocopy', default=DEFAULT_NOCOPY, type=int, help='Build directly in the repository. If unset, will rsync or copy the repository to /tmp/ first, default is %s' % (DEFAULT_NOCOPY))
+    parser.add_argument('--prefix', default=None, type=str, help='A depends prefix that will be passed to configure')
+    parser.add_argument('--nocopy', default=DEFAULT_NOCOPY, type=int, help='Build directly in the repository. If unset, will rsync or copy the repository to /tmp/ first, default is {}'.format(DEFAULT_NOCOPY))
     args = parser.parse_args()
     args.patches = dict(zip(args.commitids, [v.strip() for v in args.patches.split(',')])) if args.patches is not None else {}
     args.executables = args.executables.split(',')
@@ -223,7 +225,7 @@ def parse_arguments():
         args.opt = OPTFLAGS
     # Safety checks
     if not args.nocopy and not safe_path(args.repodir):
-        logger.error('Temp repository directory %s may not be used. Please use /tmp, e.g. "/tmp/%s"' % (args.repodir, args.repodir))
+        logger.error('Temp repository directory {} may not be used. Please use /tmp, e.g. "/tmp/{}"'.format(args.repodir, args.repodir))
         exit(1)
 
     return args
@@ -235,19 +237,19 @@ def main():
         try:
             os.makedirs(args.tgtdir)
         except FileExistsError:
-            logger.warning("%s already exists, remove it if you don't want to continue a current comparison session" % args.tgtdir)
+            logger.warning("{} already exists, remove it if you don't want to continue a current comparison session".format(args.tgtdir))
             if safe_path(args.tgtdir):
-                dodelete = input("Delete %s? [y/n] " % args.tgtdir)
+                dodelete = input("Delete {}? [y/n] ".format(args.tgtdir))
                 if dodelete == 'y' or dodelete == 'Y':
                     # Remove target dir
-                    logger.info('Removing %s' % args.tgtdir)
+                    logger.info('Removing {}'.format(args.tgtdir))
                     check_call(['rm', '-rf', args.tgtdir])
 
         for commit in args.commitids:
             try:
                 int(commit,16)
             except ValueError:
-                logger.error('%s is not a hexadecimal commit id. It\'s the only thing we know.' % commit)
+                logger.error('{} is not a hexadecimal commit id. It\'s the only thing we know.'.format(commit))
                 exit(1)
 
         # Copy repo, unless nocopy is set
@@ -274,14 +276,14 @@ def main():
         # Determine (g)make arguments
         make_args = []
         if args.parallelism is not None:
-            make_args += ['-j%i' % args.parallelism]
+            make_args += ['-j{}'.format(args.parallelism)]
         # Disable assertions if requested
         cppflags = CPPFLAGS
         if not args.assertions:
             cppflags+=['-DNDEBUG']
 
         for commit in args.commitids:
-            logger.info("Building %s..." % commit)
+            logger.info("Building {}...".format(commit))
             stripbuildinfopatch = args.patches[commit] if commit in args.patches else DEFAULT_PATCH
             commitdir = os.path.join(args.tgtdir, commit)
             commitdir_obj = os.path.join(args.tgtdir, commit+'.o')
@@ -289,14 +291,14 @@ def main():
             try:
                 os.makedirs(commitdir)
             except FileExistsError:
-                logger.error("%s already exists; skipping" % commitdir) 
+                logger.error("{} already exists; skipping".format(commitdir))
                 continue
             check_call([GIT,'reset','--hard'])
             check_call([GIT,'clean','-f','-x','-d'])
             check_call([GIT,'checkout',commit])
             try:
                 if commit in args.patches:
-                    logger.info('User-defined patch: %s' % (stripbuildinfopatch))
+                    logger.info('User-defined patch: {}'.format(stripbuildinfopatch))
                 check_call([GIT,'apply', os.path.join(PATCHDIR,stripbuildinfopatch)])
             except subprocess.CalledProcessError:
                 logger.error('Could not apply patch to strip build info. Probably it needs to be updated')
@@ -305,12 +307,13 @@ def main():
             check_call(['./autogen.sh'])
             logger.info('Running configure script')
             opt = shell_join(args.opt)
-            check_call(['./configure', '--disable-hardening', '--with-incompatible-bdb', '--without-cli', '--disable-tests', '--disable-ccache',
+            check_call(['./configure', '--disable-hardening', '--without-cli', '--disable-tests', '--disable-bench', '--disable-ccache',
+                '--prefix={}'.format(args.prefix) if args.prefix else '--with-incompatible-bdb',
                 'CPPFLAGS='+(' '.join(cppflags)), 
                 'CFLAGS='+opt, 'CXXFLAGS='+opt, 'LDFLAGS='+opt] + CONFIGURE_EXTRA)
 
             for name in args.executables:
-                logger.info('Building executable %s' % name)
+                logger.info('Building executable {}'.format(name))
                 target_name = os.path.join(args.tgtdir, os.path.basename(name) + '.' + commit)
                 check_call([MAKE] + make_args + [name])
                 shutil.copy(name, target_name)
@@ -324,8 +327,8 @@ def main():
 
         if len(args.commitids)>1: 
             logger.info('Use these commands to compare results:')
-            logger.info('$ sha256sum %s/*.stripped' % (args.tgtdir))
-            logger.info('$ git diff -W --word-diff %s %s' % (os.path.join(args.tgtdir,args.commitids[0]), os.path.join(args.tgtdir,args.commitids[1])))
+            logger.info('$ sha256sum {}/*.stripped'.format(args.tgtdir))
+            logger.info('$ git diff -W --word-diff {} {}'.format(os.path.join(args.tgtdir,args.commitids[0]), os.path.join(args.tgtdir,args.commitids[1])))
     except Exception:
         logger.exception('Error:')
 
