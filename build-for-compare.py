@@ -210,6 +210,7 @@ def parse_arguments():
     parser.add_argument('--assertions', default=DEFAULT_ASSERTIONS, type=int, help='Build with assertions, default is %s' % (DEFAULT_ASSERTIONS))
     parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
     parser.add_argument('--patches', '-P', default=None, type=str, help='Comma separated list of stripbuildinfo patches to apply, one per hash (in order).')
+    parser.add_argument('--prefix', default=None, type=str, help='A depends prefix that will be passed to configure')
     parser.add_argument('--nocopy', default=DEFAULT_NOCOPY, type=int, help='Build directly in the repository. If unset, will rsync or copy the repository to /tmp/ first, default is %s' % (DEFAULT_NOCOPY))
     args = parser.parse_args()
     args.patches = dict(zip(args.commitids, [v.strip() for v in args.patches.split(',')])) if args.patches is not None else {}
@@ -305,7 +306,8 @@ def main():
             check_call(['./autogen.sh'])
             logger.info('Running configure script')
             opt = shell_join(args.opt)
-            check_call(['./configure', '--disable-hardening', '--with-incompatible-bdb', '--without-cli', '--disable-tests', '--disable-ccache',
+            check_call(['./configure', '--disable-hardening', '--without-cli', '--disable-tests', '--disable-bench', '--disable-ccache',
+                '--prefix={}'.format(args.prefix) if args.prefix else '--with-incompatible-bdb',
                 'CPPFLAGS='+(' '.join(cppflags)), 
                 'CFLAGS='+opt, 'CXXFLAGS='+opt, 'LDFLAGS='+opt] + CONFIGURE_EXTRA)
 
