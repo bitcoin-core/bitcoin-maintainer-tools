@@ -3,7 +3,7 @@
 #
 # Usage: ../do_build.py <hash> [<hash> ...]
 # Will produce a ../bitcoind.$1.stripped for binary comparison
-import os,subprocess,sys,argparse,logging,shutil,re,hashlib,shlex
+import os,subprocess,sys,argparse,logging,shutil,re,hashlib,shlex,tempfile
 from collections import defaultdict
 from typing import List
 
@@ -26,8 +26,9 @@ DEFAULT_PARALLELISM=4
 DEFAULT_ASSERTIONS=0
 DEFAULT_NOCOPY=0
 DEFAULT_PATCH='stripbuildinfo.patch'
-DEFAULT_TGTDIR='/tmp/compare'
-DEFAULT_REPODIR='/tmp/repo'
+TMPDIR=tempfile.gettempdir()
+DEFAULT_TGTDIR=os.path.join(TMPDIR, 'compare')
+DEFAULT_REPODIR=os.path.join(TMPDIR, 'repo')
 
 # No debugging information (not used by analysis at the moment, saves on I/O)
 OPTFLAGS=["-O0","-g0"]
@@ -107,8 +108,7 @@ def safe_path(path: str) -> bool:
     abspath = os.path.abspath(path)
     if abspath[0] != '/': return False # ???
     comps = abspath[1:].split('/') # skip leading slash to avoid relying on empty first component
-    rootdir = comps[0]
-    return len(comps) > 1 and rootdir in ['tmp']
+    return len(comps) > 1 and abspath.startswith(TMPDIR)
 
 def shell_split(s: str) -> List[str]:
     return shlex.split(s)
@@ -215,7 +215,7 @@ def parse_arguments():
     parser.add_argument('--opt', default=None, type=str, help='Override C/C++ optimization flags. Prepend + to avoid collisions with arguments, e.g. "+-O2 -g"')
     parser.add_argument('--patches', '-P', default=None, type=str, help='Comma separated list of stripbuildinfo patches to apply, one per hash (in order).')
     parser.add_argument('--prefix', default=None, type=str, help='A depends prefix that will be passed to configure')
-    parser.add_argument('--nocopy', default=DEFAULT_NOCOPY, type=int, help='Build directly in the repository. If unset, will rsync or copy the repository to /tmp/ first, default is {}'.format(DEFAULT_NOCOPY))
+    parser.add_argument('--nocopy', default=DEFAULT_NOCOPY, type=int, help='Build directly in the repository. If unset, will rsync or copy the repository to a temporary directory first, default is {}'.format(DEFAULT_NOCOPY))
     args = parser.parse_args()
     args.patches = dict(zip(args.commitids, [v.strip() for v in args.patches.split(',')])) if args.patches is not None else {}
     args.executables = args.executables.split(',')
@@ -228,7 +228,7 @@ def parse_arguments():
         args.opt = OPTFLAGS
     # Safety checks
     if not args.nocopy and not safe_path(args.repodir):
-        logger.error('Temp repository directory {} may not be used. Please use /tmp, e.g. "/tmp/{}"'.format(args.repodir, args.repodir))
+        logger.error('Temp repository directory {} may not be used. Please use {}, e.g. "{}/{}"'.format(args.repodir, TMPDIR, TMPDIR, args.repodir))
         exit(1)
 
     return args
