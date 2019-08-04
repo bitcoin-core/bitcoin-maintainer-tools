@@ -63,6 +63,9 @@ CPPFLAGS=[]
 OBJCOPY_ARGS=['-R.note.gnu.build-id','-g','-S']
 OBJDUMP_ARGS=['-C','--no-show-raw-insn','-d','-r']
 
+# Set QT_RCC_SOURCE_DATE_OVERRIDE so that bitcoin-qt is deterministic
+os.environ['QT_RCC_SOURCE_DATE_OVERRIDE'] = '1'
+
 # These can be overridden from the environment
 GIT=os.getenv('GIT', 'git')
 MAKE=os.getenv('MAKE', 'make')
