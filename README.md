@@ -121,15 +121,17 @@ Example output:
 * Mainnet
 OK   seed.bitcoin.sipa.be (40 results)
 OK   dnsseed.bluematt.me (33 results)
-OK   dnsseed.bitcoin.dashjr.org (38 results)
+FAIL dnsseed.bitcoin.dashjr.org
 OK   seed.bitcoinstats.com (50 results)
-OK   bitseed.xf2.org (13 results)
-FAIL seed.bitcoin.jonasschnelli.ch
+OK   seed.bitcoin.jonasschnelli.ch (38 results)
+OK   seed.btc.petertodd.org (23 results)
+OK   seed.bitcoin.sprovoost.nl (35 results)
+OK   dnsseed.emzy.de (41 results)
 
 * Testnet
-FAIL testnet-seed.bitcoin.jonasschnelli.ch
+OK   testnet-seed.bitcoin.jonasschnelli.ch (36 results)
 OK   seed.tbtc.petertodd.org (38 results)
-OK   testnet-seed.bluematt.me (3 results)
+OK   testnet-seed.bluematt.me (5 results)
 ```
 
 fastcopy-chaindata
