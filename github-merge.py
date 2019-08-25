@@ -188,7 +188,7 @@ def make_acks_message(head_commit, acks):
         ack_str ='\n\nTop commit has no ACKs.\n'
     return ack_str
 
-def print_merge_details(pull, title, branch, base_branch, head_branch, acks):
+def print_merge_details(pull, title, branch, base_branch, head_branch, acks, message):
     print('%s#%s%s %s %sinto %s%s' % (ATTR_RESET+ATTR_PR,pull,ATTR_RESET,title,ATTR_RESET+ATTR_PR,branch,ATTR_RESET))
     subprocess.check_call([GIT,'log','--graph','--topo-order','--pretty=format:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
     if acks is not None:
@@ -198,6 +198,8 @@ def print_merge_details(pull, title, branch, base_branch, head_branch, acks):
                 print('* {} {}({}){}'.format(message, ATTR_NAME, name, ATTR_RESET))
         else:
             print('{}Top commit has no ACKs!{}'.format(ATTR_WARN, ATTR_RESET))
+    if message is not None and '@' in message:
+        print('{}Merge message contains an @!{}'.format(ATTR_WARN, ATTR_RESET))
 
 def parse_arguments():
     epilog = '''
@@ -326,7 +328,7 @@ def main():
             print("ERROR: Unable to compute tree hash")
             sys.exit(4)
 
-        print_merge_details(pull, title, branch, base_branch, head_branch, None)
+        print_merge_details(pull, title, branch, base_branch, head_branch, acks=None, message=None)
         print()
 
         # Run test command if configured.
@@ -376,7 +378,7 @@ def main():
             sys.exit(4)
 
         # Sign the merge commit.
-        print_merge_details(pull, title, branch, base_branch, head_branch, acks)
+        print_merge_details(pull, title, branch, base_branch, head_branch, acks, message)
         while True:
             reply = ask_prompt("Type 's' to sign off on the above merge, or 'x' to reject and exit.").lower()
             if reply == 's':
