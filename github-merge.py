@@ -125,6 +125,8 @@ def tree_sha512sum(commit='HEAD'):
     for line in subprocess.check_output([GIT, 'ls-tree', '--full-tree', '-r', commit]).splitlines():
         name_sep = line.index(b'\t')
         metadata = line[:name_sep].split() # perms, 'blob', blobid
+        if metadata[1] == b'commit':
+            continue # Ignore submodule
         assert(metadata[1] == b'blob')
         name = line[name_sep+1:]
         files.append(name)
