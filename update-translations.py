@@ -32,6 +32,8 @@ LOCALE_DIR = 'src/qt/locale'
 MIN_NUM_MESSAGES = 10
 # Regexp to check for Bitcoin addresses
 ADDRESS_REGEXP = re.compile('([13]|bc1)[a-zA-Z0-9]{30,}')
+# Path to git
+GIT = os.getenv("GIT", "git")
 
 def check_at_repository_root():
     if not os.path.exists('.git'):
@@ -208,8 +210,61 @@ def postprocess_translations(reduce_diff_hacks=False):
             tree.write(filepath, encoding='utf-8')
     return have_errors
 
+def update_git():
+    '''
+    Add new files to git repository.
+    (Removing files isn't necessary here, as `git commit -a` will take care of removing files that are gone)
+    '''
+    file_paths = [filepath for (filename, filepath) in all_ts_files()]
+    subprocess.check_call([GIT, 'add'] + file_paths)
+
+def update_build_systems():
+    '''
+    Update build system and Qt resource descriptors.
+    '''
+    filename_lang = [re.match(r'((bitcoin_(.*)).ts)$', filename).groups() for (filename, filepath) in all_ts_files()]
+    filename_lang.sort(key=lambda x: x[0])
+
+    # update qrc locales
+    with open('src/qt/bitcoin_locale.qrc', 'w') as f:
+        f.write('<!DOCTYPE RCC><RCC version="1.0">\n')
+        f.write('    <qresource prefix="/translations">\n')
+        for (filename, basename, lang) in filename_lang:
+            f.write(f'        <file alias="{lang}">locale/{basename}.qm</file>\n')
+        f.write('    </qresource>\n')
+        f.write('</RCC>\n')
+
+    # update Makefile
+    with open('src/Makefile.qt.include', 'r') as f:
+        lines = list(f)
+    with open('src/Makefile.qt.include', 'w') as f:
+        in_qt_ts = False
+        found_qt_ts = False
+        files = [f'  qt/locale/{filename}' for (filename, basename, lang) in filename_lang]
+        for line in lines:
+            if in_qt_ts: # skip past old QT_TS content, until the empty line
+                if line == '\n':
+                    in_qt_ts = False
+                    f.write(line)
+                else: # check that we're only skipping past the expected kind of lines
+                    assert(line.startswith("  qt/locale/"))
+            else:
+                if line == 'QT_TS = \\\n':
+                    in_qt_ts = True
+                    found_qt_ts = True
+
+                f.write(line)
+
+                if in_qt_ts: # found QT_TS variable: insert new list of files, one per line
+                    f.write(' \\\n'.join(files))
+                    f.write('\n') # make sure last line doesn't end with a backslash
+
+        assert found_qt_ts and not in_qt_ts
+
 if __name__ == '__main__':
     check_at_repository_root()
     fetch_all_translations()
     postprocess_translations()
+    update_git()
+    update_build_systems()
 
