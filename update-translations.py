@@ -234,32 +234,11 @@ def update_build_systems():
         f.write('    </qresource>\n')
         f.write('</RCC>\n')
 
-    # update Makefile
-    with open('src/Makefile.qt.include', 'r') as f:
-        lines = list(f)
-    with open('src/Makefile.qt.include', 'w') as f:
-        in_qt_ts = False
-        found_qt_ts = False
-        files = [f'  qt/locale/{filename}' for (filename, basename, lang) in filename_lang]
-        for line in lines:
-            if in_qt_ts: # skip past old QT_TS content, until the empty line
-                if line == '\n':
-                    in_qt_ts = False
-                    f.write(line)
-                else: # check that we're only skipping past the expected kind of lines
-                    assert(line.startswith("  qt/locale/"))
-            else:
-                if line == 'QT_TS = \\\n':
-                    in_qt_ts = True
-                    found_qt_ts = True
-
-                f.write(line)
-
-                if in_qt_ts: # found QT_TS variable: insert new list of files, one per line
-                    f.write(' \\\n'.join(files))
-                    f.write('\n') # make sure last line doesn't end with a backslash
-
-        assert found_qt_ts and not in_qt_ts
+    # update Makefile include
+    with open('src/Makefile.qt_locale.include', 'w') as f:
+        f.write('QT_TS = \\\n')
+        f.write(' \\\n'.join(f'  qt/locale/{filename}' for (filename, basename, lang) in filename_lang))
+        f.write('\n') # make sure last line doesn't end with a backslash
 
 if __name__ == '__main__':
     check_at_repository_root()
