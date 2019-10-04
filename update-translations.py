@@ -32,6 +32,8 @@ LOCALE_DIR = 'src/qt/locale'
 MIN_NUM_MESSAGES = 10
 # Regexp to check for Bitcoin addresses
 ADDRESS_REGEXP = re.compile('([13]|bc1)[a-zA-Z0-9]{30,}')
+# Path to git
+GIT = os.getenv("GIT", "git")
 
 def check_at_repository_root():
     if not os.path.exists('.git'):
@@ -208,8 +210,40 @@ def postprocess_translations(reduce_diff_hacks=False):
             tree.write(filepath, encoding='utf-8')
     return have_errors
 
+def update_git():
+    '''
+    Add new files to git repository.
+    (Removing files isn't necessary here, as `git commit -a` will take care of removing files that are gone)
+    '''
+    file_paths = [filepath for (filename, filepath) in all_ts_files()]
+    subprocess.check_call([GIT, 'add'] + file_paths)
+
+def update_build_systems():
+    '''
+    Update build system and Qt resource descriptors.
+    '''
+    filename_lang = [re.match(r'((bitcoin_(.*)).ts)$', filename).groups() for (filename, filepath) in all_ts_files()]
+    filename_lang.sort(key=lambda x: x[0])
+
+    # update qrc locales
+    with open('src/qt/bitcoin_locale.qrc', 'w') as f:
+        f.write('<!DOCTYPE RCC><RCC version="1.0">\n')
+        f.write('    <qresource prefix="/translations">\n')
+        for (filename, basename, lang) in filename_lang:
+            f.write(f'        <file alias="{lang}">locale/{basename}.qm</file>\n')
+        f.write('    </qresource>\n')
+        f.write('</RCC>\n')
+
+    # update Makefile include
+    with open('src/Makefile.qt_locale.include', 'w') as f:
+        f.write('QT_TS = \\\n')
+        f.write(' \\\n'.join(f'  qt/locale/{filename}' for (filename, basename, lang) in filename_lang))
+        f.write('\n') # make sure last line doesn't end with a backslash
+
 if __name__ == '__main__':
     check_at_repository_root()
     fetch_all_translations()
     postprocess_translations()
+    update_git()
+    update_build_systems()
 
