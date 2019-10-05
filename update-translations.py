@@ -7,13 +7,13 @@ Run this script from the root of the repository to update all translations from
 transifex.
 It will do the following automatically:
 
+- remove current translations
 - fetch all translations using the tx tool
 - post-process them into valid and committable format
   - remove invalid control characters
   - remove location tags (makes diffs less noisy)
-
-TODO:
-- auto-add new translations to the build system according to the translation process
+- update git for added translations
+- update build system
 '''
 import subprocess
 import re
@@ -40,6 +40,17 @@ def check_at_repository_root():
         print('No .git directory found')
         print('Execute this script at the root of the repository', file=sys.stderr)
         sys.exit(1)
+
+def remove_current_translations():
+    '''
+    Remove current translations, as well as temporary files that might be left behind
+    We only want the active translations that are currently on transifex.
+    This leaves bitcoin_en.ts untouched.
+    '''
+    for (_,name) in all_ts_files():
+        os.remove(name)
+    for (_,name) in all_ts_files('.orig'):
+        os.remove(name + '.orig')
 
 def fetch_all_translations():
     if subprocess.call([TX, 'pull', '-f', '-a']):
@@ -242,6 +253,7 @@ def update_build_systems():
 
 if __name__ == '__main__':
     check_at_repository_root()
+    remove_current_translations()
     fetch_all_translations()
     postprocess_translations()
     update_git()
