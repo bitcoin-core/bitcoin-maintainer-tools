@@ -25,7 +25,7 @@ import sys
 SERVER = "https://www.transifex.com"
 
 
-def get_source_entity_hash(context, key):
+def get_source_entity_hash(context, key) -> str:
     if isinstance(context, list):
         if context:
             keys = [key] + context
