@@ -243,3 +243,26 @@ New resource slug: 'new'
 python transifex-migrate-resource.py project old new
  
 After running the command you will be asked for your Transifex username and password.
+
+list-pulls
+----------
+
+Script to parse git commit list, extract github issues to create a changelog in
+text and json format.
+
+Run this in the root directory of the repository.
+
+This requires an up-to-date checkout of https://github.com/zw/bitcoin-gh-meta.git
+in the parent directory, or environment variable `GHMETA`.
+
+It takes a range of commits and a .json file of PRs to exclude, for
+example if these are already backported in a minor release. This can be the pulls.json
+generated from a previous release.
+
+Example usage:
+
+    ../maintainer-tools/list-pulls.py v0.18.0 0.19 relnot/pulls-exclude.json > relnot/pulls.md
+
+The output of this script is a first draft based on rough heuristics, and
+likely needs to be extensively manually edited before ending up in the release
+notes.
