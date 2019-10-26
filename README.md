@@ -266,3 +266,10 @@ Example usage:
 The output of this script is a first draft based on rough heuristics, and
 likely needs to be extensively manually edited before ending up in the release
 notes.
+
+make-tag
+--------
+
+Make a new release tag, performing a few checks.
+
+Usage: `make-tag.py <tag>`.
