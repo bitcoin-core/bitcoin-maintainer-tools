@@ -173,7 +173,7 @@ def get_acks_from_comments(head_commit, comments):
     head_abbrev = head_commit[0:6]
     acks = []
     for c in comments:
-        review = [l for l in c['body'].split('\r\n') if 'ACK' in l and head_abbrev in l]
+        review = [l for l in c['body'].splitlines() if 'ACK' in l and head_abbrev in l]
         if review:
             acks.append((c['user']['login'], review[0]))
     return acks

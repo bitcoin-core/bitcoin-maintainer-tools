@@ -154,7 +154,7 @@ if len(sys.argv) >= 4:
 # set of all commits
 commits = subprocess.check_output([GIT, 'rev-list', '--reverse', '--topo-order', ref_from+'..'+ref_to])
 commits = commits.decode()
-commits = remove_last(commits.split('\n'))
+commits = remove_last(commits.splitlines())
 commits_list = commits
 commits = set(commits)
 
@@ -166,7 +166,7 @@ for commit in commits:
     info = subprocess.check_output([GIT, 'show', '-s', '--format=%B%x00%P', commit])
     info = info.decode()
     (message, parents) = info.split('\0')
-    title = message.rstrip().split('\n')[0]
+    title = message.rstrip().splitlines()[0]
     parents = parents.rstrip().split(' ')
     commit_data[commit] = CommitData(commit, message, title, parents)
 
@@ -182,7 +182,7 @@ def parse_commit_message(msg):
     Parse backport commit message.
     '''
     retval = CommitMetaData()
-    for line in msg.split('\n'):
+    for line in msg.splitlines():
         m = re.match('Github-Pull: #?(\d+)', line, re.I)
         if m:
             retval.pull = int(m.group(1))
@@ -210,7 +210,7 @@ for c in commit_data.values():
             #print('removing ', c.sha)
             sub_commits = subprocess.check_output([GIT, 'rev-list', c.parents[0]+'..'+c.parents[1]])
             sub_commits = sub_commits.decode()
-            sub_commits = set(sub_commits.rstrip().split('\n'))
+            sub_commits = set(sub_commits.rstrip().splitlines())
             pull = int(match.group(1))
 
             # remove commits that are not in the global list

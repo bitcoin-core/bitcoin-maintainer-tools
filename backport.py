@@ -72,7 +72,7 @@ else: # no colors if we're printing a bash script
 if not execute:
     print('set -e')
 for t in to_backport:
-    msg = t[1].message.rstrip().split('\n')
+    msg = t[1].message.rstrip().splitlines()
     assert(msg[1] == '')
     print('{a.hsh}# {a.head}{}{a.reset}'.format(msg[0],a=Attr))
     # XXX get the commits in the merge from the actual commit data instead of from the commit message
