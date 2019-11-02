@@ -164,7 +164,7 @@ def objdump_all(srcdir: str, tgtdir: str):
         # postprocess- break into sections separated by 'Disassembly of section...'
         sections = defaultdict(list)
         funcname = ''
-        for line in out.split('\n'):
+        for line in out.splitlines():
             match = re.match('^Disassembly of section (.*):$', line)
             if match:
                 funcname = match.group(1)
