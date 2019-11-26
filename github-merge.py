@@ -167,21 +167,21 @@ def tree_sha512sum(commit='HEAD'):
         raise IOError('Non-zero return value executing git cat-file')
     return overall.hexdigest()
 
-def get_acks_from_comments(head_commit, comments):
+def get_acks_from_comments(head_commit, comments) -> dict:
     # Look for abbreviated commit id, because not everyone wants to type/paste
     # the whole thing and the chance of collisions within a PR is small enough
     head_abbrev = head_commit[0:6]
-    acks = []
+    acks = {}
     for c in comments:
         review = [l for l in c['body'].splitlines() if 'ACK' in l and head_abbrev in l]
         if review:
-            acks.append((c['user']['login'], review[0]))
+            acks[c['user']['login']] = review[0]
     return acks
 
-def make_acks_message(head_commit, acks):
+def make_acks_message(head_commit, acks) -> str:
     if acks:
         ack_str ='\n\nACKs for top commit:\n'.format(head_commit)
-        for name, msg in acks:
+        for name, msg in acks.items():
             ack_str += '  {}:\n'.format(name)
             ack_str += '    {}\n'.format(msg)
     else:
@@ -194,7 +194,7 @@ def print_merge_details(pull, title, branch, base_branch, head_branch, acks, mes
     if acks is not None:
         if acks:
             print('{}ACKs:{}'.format(ATTR_PR, ATTR_RESET))
-            for (name, message) in acks:
+            for name, message in acks.items():
                 print('* {} {}({}){}'.format(message, ATTR_NAME, name, ATTR_RESET))
         else:
             print('{}Top commit has no ACKs!{}'.format(ATTR_WARN, ATTR_RESET))
