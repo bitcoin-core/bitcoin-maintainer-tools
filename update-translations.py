@@ -113,10 +113,10 @@ def check_format_specifiers(source, translation, errors, numerus):
             return False
     return True
 
-def all_ts_files(suffix=''):
+def all_ts_files(suffix='', include_source=False):
     for filename in os.listdir(LOCALE_DIR):
         # process only language files, and do not process source language
-        if not filename.endswith('.ts'+suffix) or filename == SOURCE_LANG+suffix:
+        if not filename.endswith('.ts'+suffix) or (not include_source and filename == SOURCE_LANG+suffix):
             continue
         if suffix: # remove provided suffix
             filename = filename[0:-len(suffix)]
@@ -233,7 +233,7 @@ def update_build_systems():
     '''
     Update build system and Qt resource descriptors.
     '''
-    filename_lang = [re.match(r'((bitcoin_(.*)).ts)$', filename).groups() for (filename, filepath) in all_ts_files()]
+    filename_lang = [re.match(r'((bitcoin_(.*)).ts)$', filename).groups() for (filename, filepath) in all_ts_files(include_source=True)]
     filename_lang.sort(key=lambda x: x[0])
 
     # update qrc locales
