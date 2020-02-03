@@ -188,13 +188,15 @@ def make_acks_message(head_commit, acks) -> str:
         ack_str ='\n\nTop commit has no ACKs.\n'
     return ack_str
 
-def print_merge_details(pull, title, branch, base_branch, head_branch, acks, message):
+def print_merge_details(pull, title, branch, base_branch, head_branch, acks, message, warn=False):
     print('%s#%s%s %s %sinto %s%s' % (ATTR_RESET+ATTR_PR,pull,ATTR_RESET,title,ATTR_RESET+ATTR_PR,branch,ATTR_RESET))
     subprocess.check_call([GIT,'log','--graph','--topo-order','--pretty=format:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
     if acks is not None:
         if acks:
             print('{}ACKs:{}'.format(ATTR_PR, ATTR_RESET))
             for name, msg in acks.items():
+                if msg is not None and '@' in msg:
+                    warn = True
                 print('* {} {}({}){}'.format(msg, ATTR_NAME, name, ATTR_RESET))
         else:
             print('{}Top commit has no ACKs!{}'.format(ATTR_WARN, ATTR_RESET))
@@ -202,6 +204,8 @@ def print_merge_details(pull, title, branch, base_branch, head_branch, acks, mes
         print('{}Merge message contains an @!{}'.format(ATTR_WARN, ATTR_RESET))
     if message is not None and '<!-' in message:
         print('{}Merge message contains an html comment!{}'.format(ATTR_WARN, ATTR_RESET))
+    if warn:
+        print('{}A merge ACK message contains an @!{}'.format(ATTR_WARN, ATTR_RESET))
 
 def parse_arguments():
     epilog = '''
