@@ -200,6 +200,8 @@ def print_merge_details(pull, title, branch, base_branch, head_branch, acks, mes
             print('{}Top commit has no ACKs!{}'.format(ATTR_WARN, ATTR_RESET))
     if message is not None and '@' in message:
         print('{}Merge message contains an @!{}'.format(ATTR_WARN, ATTR_RESET))
+    if message is not None and '<!-' in message:
+        print('{}Merge message contains an html comment!{}'.format(ATTR_WARN, ATTR_RESET))
 
 def parse_arguments():
     epilog = '''
