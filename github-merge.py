@@ -194,8 +194,8 @@ def print_merge_details(pull, title, branch, base_branch, head_branch, acks, mes
     if acks is not None:
         if acks:
             print('{}ACKs:{}'.format(ATTR_PR, ATTR_RESET))
-            for name, message in acks.items():
-                print('* {} {}({}){}'.format(message, ATTR_NAME, name, ATTR_RESET))
+            for ack_name, ack_msg in acks.items():
+                print('* {} {}({}){}'.format(ack_msg, ATTR_NAME, ack_name, ATTR_RESET))
         else:
             print('{}Top commit has no ACKs!{}'.format(ATTR_WARN, ATTR_RESET))
     if message is not None and '@' in message:
