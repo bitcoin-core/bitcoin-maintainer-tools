@@ -25,6 +25,9 @@ import codecs
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
+# Required checks
+CHECKS = ["travis", "appveyor"]
+
 # External tools (can be overridden using environment)
 GIT = os.getenv('GIT','git')
 BASH = os.getenv('BASH','bash')
@@ -53,6 +56,7 @@ def git_config_get(option, default=None):
 
 def get_response(req_url, ghtoken):
     req = Request(req_url)
+    req.add_header('Accept', 'application/vnd.github.antiope-preview+json')
     if ghtoken is not None:
         req.add_header('Authorization', 'token ' + ghtoken)
     return urlopen(req)
@@ -102,6 +106,11 @@ def retrieve_pr_comments(repo,pull,ghtoken):
 def retrieve_pr_reviews(repo,pull,ghtoken):
     req_url = "https://api.github.com/repos/"+repo+"/pulls/"+pull+"/reviews"
     return retrieve_json(req_url,ghtoken,use_pagination=True)
+
+def retrieve_commit_checks(repo,commit,ghtoken):
+    # latest are returned by default
+    req_url = "https://api.github.com/repos/"+repo+"/commits/"+commit+"/check-runs"
+    return retrieve_json(req_url,ghtoken)
 
 def ask_prompt(text):
     print(text,end=" ",file=stderr)
@@ -221,6 +230,24 @@ def parse_arguments():
         default=None, help='Branch to merge against (default: githubmerge.branch setting, or base branch for pull, or \'master\')')
     return parser.parse_args()
 
+def check_checks(repo, commit, ghtoken):
+    res = retrieve_commit_checks(repo,commit,ghtoken)
+
+    for check in res['check_runs']:
+        try:
+            CHECKS.remove(check["name"])
+        except ValueError:
+            print("ERROR: Unknown check detected: %s." % (check["name"]), file=stderr)
+            sys.exit(9)
+
+        if check["conclusion"] != "success":
+            print("ERROR: Check %s was not successful." % (check["name"]), file=stderr)
+            sys.exit(9)
+
+    if len(CHECKS):
+        print("ERROR: Not all checks have ran. Missed checks: ." % (str(CHECKS).strip('[]')), file=stderr)
+        sys.exit(9)
+
 def main():
     # Extract settings from git repo
     repo = git_config_get('githubmerge.repository')
@@ -259,6 +286,10 @@ def main():
     #   - base branch for pull (as retrieved from github)
     #   - 'master'
     branch = args.branch or opt_branch or info['base']['ref'] or 'master'
+
+    # Ensure all checks have run and succeeded
+    commit = info['head']['sha']
+    check_checks(repo, commit, ghtoken)
 
     # Initialize source branches
     head_branch = 'pull/'+pull+'/head'
