@@ -1,8 +1,8 @@
 diff --git a/src/bench/bench.h b/src/bench/bench.h
-index 3a8c487b9..47fcffd23 100644
+index 6b7a0f76d..2245151eb 100644
 --- a/src/bench/bench.h
 +++ b/src/bench/bench.h
-@@ -136,6 +136,6 @@ private:
+@@ -139,6 +139,6 @@ private:
  // Choose a num_iters_for_one_second that takes roughly 1 second. The goal is that all benchmarks should take approximately
  // the same time, and scaling factor can be used that the total time is appropriate for your system.
  #define BENCHMARK(n, num_iters_for_one_second) \
@@ -38,38 +38,37 @@ index 6e7b4d3de..51358db29 100644
  // Assumption: We assume a C++11 (ISO/IEC 14882:2011) compiler (minimum requirement).
  // Example(s): We assume the presence of C++11 features everywhere :-)
 diff --git a/src/interfaces/chain.cpp b/src/interfaces/chain.cpp
-index 26856a00d..82090a10e 100644
+index c8311b298..d14b8f75c 100644
 --- a/src/interfaces/chain.cpp
 +++ b/src/interfaces/chain.cpp
-@@ -236,7 +236,7 @@ public:
+@@ -229,7 +229,7 @@ public:
      explicit ChainImpl(NodeContext& node) : m_node(node) {}
      std::unique_ptr<Chain::Lock> lock(bool try_lock) override
      {
--        auto result = MakeUnique<LockImpl>(::cs_main, "cs_main", __FILE__, __LINE__, try_lock);
-+        auto result = MakeUnique<LockImpl>(::cs_main, "cs_main", __FILE__, 0, try_lock);
-         if (try_lock && result && !*result) return {};
-         // std::move necessary on some compilers due to conversion from
-         // LockImpl to Lock pointer
+-        auto lock = MakeUnique<LockImpl>(::cs_main, "cs_main", __FILE__, __LINE__, try_lock);
++        auto lock = MakeUnique<LockImpl>(::cs_main, "cs_main", __FILE__, 0, try_lock);
+         if (try_lock && lock && !*lock) return {};
+         std::unique_ptr<Chain::Lock> result = std::move(lock); // Temporary to avoid CWG 1579
+         return result;
 diff --git a/src/net_processing.cpp b/src/net_processing.cpp
-index f42a26ca3..e968cadb3 100644
+index d3089c417..55408686b 100644
 --- a/src/net_processing.cpp
 +++ b/src/net_processing.cpp
-@@ -30,10 +30,6 @@
-
+@@ -30,9 +30,6 @@
  #include <memory>
+ #include <typeinfo>
 
 -#if defined(NDEBUG)
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
--
+
  /** Expiration time for orphan transactions in seconds */
  static constexpr int64_t ORPHAN_TX_EXPIRE_TIME = 20 * 60;
- /** Minimum time between orphan transactions expire time checks in seconds */
 diff --git a/src/sync.cpp b/src/sync.cpp
-index 257093fad..ef3ccf228 100644
+index b86c57e49..2232c6e26 100644
 --- a/src/sync.cpp
 +++ b/src/sync.cpp
-@@ -116,7 +116,7 @@ static void potential_deadlock_detected(const std::pair<void*, void*>& mismatch,
+@@ -121,7 +121,7 @@ static void potential_deadlock_detected(const std::pair<void*, void*>& mismatch,
          LogPrintf(" %s\n", i.second.ToString());
      }
      if (g_debug_lockorder_abort) {
@@ -79,10 +78,10 @@ index 257093fad..ef3ccf228 100644
      }
      throw std::logic_error("potential deadlock detected");
 diff --git a/src/sync.h b/src/sync.h
-index 8ff617314..8bb7aff02 100644
+index 0c6f0ef0a..97c6ffe8b 100644
 --- a/src/sync.h
 +++ b/src/sync.h
-@@ -68,8 +68,8 @@ void static inline AssertLockHeldInternal(const char* pszName, const char* pszFi
+@@ -70,8 +70,8 @@ void static inline AssertLockHeldInternal(const char* pszName, const char* pszFi
  void static inline AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) {}
  void static inline DeleteLock(void* cs) {}
  #endif
@@ -93,7 +92,13 @@ index 8ff617314..8bb7aff02 100644
 
  /**
   * Template mixin that adds -Wthread-safety locking annotations and lock order
-@@ -177,16 +177,16 @@ public:
+@@ -210,21 +210,21 @@ public:
+      friend class reverse_lock;
+ };
+
+-#define REVERSE_LOCK(g) typename std::decay<decltype(g)>::type::reverse_lock PASTE2(revlock, __COUNTER__)(g, #g, __FILE__, __LINE__)
++#define REVERSE_LOCK(g) typename std::decay<decltype(g)>::type::reverse_lock PASTE2(revlock, __COUNTER__)(g, #g, __FILE__, 0)
+ 
  template<typename MutexArg>
  using DebugLock = UniqueLock<typename std::remove_reference<typename std::remove_pointer<MutexArg>::type>::type>;
 
@@ -112,23 +117,21 @@ index 8ff617314..8bb7aff02 100644
  #define ENTER_CRITICAL_SECTION(cs)                            \
      {                                                         \
 -        EnterCritical(#cs, __FILE__, __LINE__, (void*)(&cs)); \
-+        EnterCritical(#cs, __FILE__, 0, (void*)(&cs));        \
++        EnterCritical(#cs, __FILE__, 0, (void*)(&cs)); \
          (cs).lock();                                          \
      }
 
 diff --git a/src/validation.cpp b/src/validation.cpp
-index 8f5d33317..ac702d36f 100644
+index 9f5c59e52..bda70c649 100644
 --- a/src/validation.cpp
 +++ b/src/validation.cpp
-@@ -52,10 +52,6 @@
+@@ -52,9 +52,6 @@
  #include <boost/algorithm/string/replace.hpp>
  #include <boost/thread.hpp>
 
 -#if defined(NDEBUG)
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
--
+
  #define MICRO 0.000001
  #define MILLI 0.001
-
---
