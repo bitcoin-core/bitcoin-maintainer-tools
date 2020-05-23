@@ -238,14 +238,14 @@ def main():
         print("git config --global user.signingkey <key>",file=stderr)
         sys.exit(1)
 
+    # Extract settings from command line
+    args = parse_arguments()
+    pull = str(args.pull[0])
+
     if host.startswith(('https:','http:')):
         host_repo = host+"/"+repo+".git"
     else:
         host_repo = host+":"+repo
-
-    # Extract settings from command line
-    args = parse_arguments()
-    pull = str(args.pull[0])
 
     # Receive pull information from github
     info = retrieve_pr_info(repo,pull,ghtoken)
