@@ -216,6 +216,8 @@ def parse_arguments():
     '''
     parser = argparse.ArgumentParser(description='Utility to merge, sign and push github pull requests',
             epilog=epilog)
+    parser.add_argument('--repo_from', metavar='repo_from', type=str, nargs='?',
+        help='The repo to fetch the pull request from. Useful for monotree repositories. Can only be specified when branch==master. (default: githubmerge.repository setting)')
     parser.add_argument('pull', metavar='PULL', type=int, nargs=1,
         help='Pull request ID to merge')
     parser.add_argument('branch', metavar='BRANCH', type=str, nargs='?',
@@ -241,7 +243,8 @@ def main():
 
     # Extract settings from command line
     args = parse_arguments()
-    repo_from = repo
+    repo_from = args.repo_from or repo
+    is_other_fetch_repo = repo_from != repo
     pull = str(args.pull[0])
 
     if host.startswith(('https:','http:')):
@@ -257,6 +260,7 @@ def main():
         sys.exit(1)
     title = info['title'].strip()
     body = info['body'].strip()
+    pull_reference = (repo_from if is_other_fetch_repo else '') + '#' + pull
     # precedence order for destination branch argument:
     #   - command line argument
     #   - githubmerge.branch setting
@@ -264,13 +268,14 @@ def main():
     #   - 'master'
     branch = args.branch or opt_branch or info['base']['ref'] or 'master'
 
-    pull_reference = '#' + pull
-
     if branch == 'master':
         push_mirrors = git_config_get('githubmerge.pushmirrors', default='').split(',')
         push_mirrors = [p for p in push_mirrors if p]  # Filter empty string
     else:
         push_mirrors = []
+        if is_other_fetch_repo:
+            print('ERROR: repo_from is only supported for the master development branch')
+            sys.exit(1)
 
     # Initialize source branches
     head_branch = 'pull/'+pull+'/head'
