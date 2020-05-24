@@ -206,7 +206,8 @@ def print_merge_details(pull_reference, title, branch, base_branch, head_branch,
 def parse_arguments():
     epilog = '''
         In addition, you can set the following git configuration variables:
-        githubmerge.repository (mandatory),
+        githubmerge.repository (mandatory, e.g. <owner>/<repo>),
+        githubmerge.pushmirrors (default: none, comma-separated list of mirrors to push merges of the master development branch to, e.g. `git@gitlab.com:<owner>/<repo>.git,git@github.com:<owner>/<repo>.git`),
         user.signingkey (mandatory),
         user.ghtoken (default: none).
         githubmerge.host (default: git@github.com),
@@ -261,6 +262,12 @@ def main():
     branch = args.branch or opt_branch or info['base']['ref'] or 'master'
 
     pull_reference = '#' + pull
+
+    if branch == 'master':
+        push_mirrors = git_config_get('githubmerge.pushmirrors', default='').split(',')
+        push_mirrors = [p for p in push_mirrors if p]  # Filter empty string
+    else:
+        push_mirrors = []
 
     # Initialize source branches
     head_branch = 'pull/'+pull+'/head'
@@ -408,9 +415,11 @@ def main():
 
     # Push the result.
     while True:
-        reply = ask_prompt("Type 'push' to push the result to %s, branch %s, or 'x' to exit without pushing." % (host_repo,branch)).lower()
+        reply = ask_prompt("Type 'push' to push the result to {}, branch {}, or 'x' to exit without pushing.".format(', '.join([host_repo] + push_mirrors), branch)).lower()
         if reply == 'push':
             subprocess.check_call([GIT,'push',host_repo,'refs/heads/'+branch])
+            for p_mirror in push_mirrors:
+                subprocess.check_call([GIT,'push',p_mirror,'refs/heads/'+branch])
             break
         elif reply == 'x':
             sys.exit(1)
