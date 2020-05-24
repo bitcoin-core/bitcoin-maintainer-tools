@@ -241,15 +241,18 @@ def main():
 
     # Extract settings from command line
     args = parse_arguments()
+    repo_from = repo
     pull = str(args.pull[0])
 
     if host.startswith(('https:','http:')):
         host_repo = host+"/"+repo+".git"
+        host_repo_from = host+"/"+repo_from+".git"
     else:
         host_repo = host+":"+repo
+        host_repo_from = host+":"+repo_from
 
     # Receive pull information from github
-    info = retrieve_pr_info(repo,pull,ghtoken)
+    info = retrieve_pr_info(repo_from,pull,ghtoken)
     if info is None:
         sys.exit(1)
     title = info['title'].strip()
@@ -282,22 +285,22 @@ def main():
         print("ERROR: Cannot check out branch %s." % (branch), file=stderr)
         sys.exit(3)
     try:
-        subprocess.check_call([GIT,'fetch','-q',host_repo,'+refs/pull/'+pull+'/*:refs/heads/pull/'+pull+'/*',
+        subprocess.check_call([GIT,'fetch','-q',host_repo_from,'+refs/pull/'+pull+'/*:refs/heads/pull/'+pull+'/*',
                                                           '+refs/heads/'+branch+':refs/heads/'+base_branch])
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo), file=stderr)
+        print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo_from), file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+head_branch], stdout=devnull, stderr=stdout)
         head_commit = subprocess.check_output([GIT,'log','-1','--pretty=format:%H',head_branch]).decode('utf-8')
         assert len(head_commit) == 40
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo), file=stderr)
+        print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo_from), file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+merge_branch], stdout=devnull, stderr=stdout)
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo), file=stderr)
+        print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo_from), file=stderr)
         sys.exit(3)
     subprocess.check_call([GIT,'checkout','-q',base_branch])
     subprocess.call([GIT,'branch','-q','-D',local_merge_branch], stderr=devnull)
@@ -374,7 +377,7 @@ def main():
 
         # Retrieve PR comments and ACKs and add to commit message, store ACKs to print them with commit
         # description
-        comments = retrieve_pr_comments(repo,pull,ghtoken) + retrieve_pr_reviews(repo,pull,ghtoken)
+        comments = retrieve_pr_comments(repo_from,pull,ghtoken) + retrieve_pr_reviews(repo_from,pull,ghtoken)
         if comments is None:
             print("ERROR: Could not fetch PR comments and reviews",file=stderr)
             sys.exit(1)
