@@ -27,7 +27,7 @@ from urllib.error import HTTPError
 
 # External tools (can be overridden using environment)
 GIT = os.getenv('GIT','git')
-BASH = os.getenv('BASH','bash')
+SHELL = os.getenv('SHELL','bash')
 
 # OS specific configuration for terminal attributes
 ATTR_RESET = ''
@@ -356,7 +356,7 @@ def main():
             print("Type 'exit' when done.",file=stderr)
             if os.path.isfile('/etc/debian_version'): # Show pull number on Debian default prompt
                 os.putenv('debian_chroot',pull)
-            subprocess.call([BASH,'-i'])
+            subprocess.call([SHELL,'-i'])
 
         second_sha512 = tree_sha512sum()
         if first_sha512 != second_sha512:
