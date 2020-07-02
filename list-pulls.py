@@ -54,7 +54,7 @@ LABEL_MAPPING = (
         'Block and transaction handling'),
     ({'p2p'},
         'P2P protocol and network code'),
-    ({'wallet'},
+    ({'wallet', 'descriptors'},
         'Wallet'),
     # Frontends
     ({'rpc/rest/zmq'},
@@ -103,6 +103,7 @@ PREFIXES = [
     ('lint', 'Miscellaneous', False),
     ('logging', 'Miscellaneous', False),
     ('mempool', 'Block and transaction handling', True),
+    ('txmempool', 'Block and transaction handling', True),
     ('moveonly', 'Refactoring', False),
     ('net', 'P2P protocol and network code', True),
     ('nit', 'Refactoring', True),
@@ -125,6 +126,7 @@ PREFIXES = [
     ('ui', 'GUI', True),
     ('util', 'Miscellaneous', False),
     ('utils', 'Miscellaneous', False),
+    ('validation', 'Block and transaction handling', True),
     ('wallet', 'Wallet', True),
 ]
 
