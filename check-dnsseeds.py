@@ -6,7 +6,8 @@ Seeds are available from https://github.com/bitcoin/bitcoin/blob/master/src/chai
 import subprocess
 
 SEEDS_MAINNET=["seed.bitcoin.sipa.be","dnsseed.bluematt.me","dnsseed.bitcoin.dashjr.org","seed.bitcoinstats.com",
-                "seed.bitcoin.jonasschnelli.ch","seed.btc.petertodd.org", "seed.bitcoin.sprovoost.nl", "dnsseed.emzy.de"]
+                "seed.bitcoin.jonasschnelli.ch","seed.btc.petertodd.org", "seed.bitcoin.sprovoost.nl", "dnsseed.emzy.de",
+                "seed.bitcoin.wiz.biz"]
 SEEDS_TESTNET=["testnet-seed.bitcoin.jonasschnelli.ch","seed.tbtc.petertodd.org","testnet-seed.bluematt.me"]
 
 def check_seed(x):
