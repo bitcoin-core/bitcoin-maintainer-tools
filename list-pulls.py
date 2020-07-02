@@ -128,10 +128,12 @@ PREFIXES = [
     ('wallet', 'Wallet', True),
 ]
 
-def remove_last(l):
+def remove_last_if_empty(l):
     '''Remove empty last member of list'''
-    assert(l[-1]==b'' or l[-1]=='')
-    return l[0:-1]
+    if l[-1]==b'' or l[-1]=='':
+        return l[0:-1]
+    else:
+        return l
 
 ref_from = sys.argv[1] # 'v0.10.0rc1'
 ref_to = sys.argv[2] # 'master'
@@ -154,7 +156,7 @@ if len(sys.argv) >= 4:
 # set of all commits
 commits = subprocess.check_output([GIT, 'rev-list', '--reverse', '--topo-order', ref_from+'..'+ref_to])
 commits = commits.decode()
-commits = remove_last(commits.splitlines())
+commits = remove_last_if_empty(commits.splitlines())
 commits_list = commits
 commits = set(commits)
 
