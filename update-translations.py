@@ -53,7 +53,7 @@ def remove_current_translations():
         os.remove(name + '.orig')
 
 def fetch_all_translations():
-    if subprocess.call([TX, 'pull', '-f', '-a']):
+    if subprocess.call([TX, 'pull', '-f', '-a', '--minimum-perc=1']):
         print('Error while fetching translations', file=sys.stderr)
         sys.exit(1)
 
