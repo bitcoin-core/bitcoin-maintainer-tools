@@ -188,8 +188,8 @@ def make_acks_message(head_commit, acks) -> str:
         ack_str ='\n\nTop commit has no ACKs.\n'
     return ack_str
 
-def print_merge_details(pull, title, branch, base_branch, head_branch, acks, message):
-    print('%s#%s%s %s %sinto %s%s' % (ATTR_RESET+ATTR_PR,pull,ATTR_RESET,title,ATTR_RESET+ATTR_PR,branch,ATTR_RESET))
+def print_merge_details(pull_reference, title, branch, base_branch, head_branch, acks, message):
+    print('{}{}{} {} {}into {}{}'.format(ATTR_RESET+ATTR_PR,pull_reference,ATTR_RESET,title,ATTR_RESET+ATTR_PR,branch,ATTR_RESET))
     subprocess.check_call([GIT,'log','--graph','--topo-order','--pretty=format:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
     if acks is not None:
         if acks:
@@ -206,7 +206,8 @@ def print_merge_details(pull, title, branch, base_branch, head_branch, acks, mes
 def parse_arguments():
     epilog = '''
         In addition, you can set the following git configuration variables:
-        githubmerge.repository (mandatory),
+        githubmerge.repository (mandatory, e.g. <owner>/<repo>),
+        githubmerge.pushmirrors (default: none, comma-separated list of mirrors to push merges of the master development branch to, e.g. `git@gitlab.com:<owner>/<repo>.git,git@github.com:<owner>/<repo>.git`),
         user.signingkey (mandatory),
         user.ghtoken (default: none).
         githubmerge.host (default: git@github.com),
@@ -238,14 +239,14 @@ def main():
         print("git config --global user.signingkey <key>",file=stderr)
         sys.exit(1)
 
+    # Extract settings from command line
+    args = parse_arguments()
+    pull = str(args.pull[0])
+
     if host.startswith(('https:','http:')):
         host_repo = host+"/"+repo+".git"
     else:
         host_repo = host+":"+repo
-
-    # Extract settings from command line
-    args = parse_arguments()
-    pull = str(args.pull[0])
 
     # Receive pull information from github
     info = retrieve_pr_info(repo,pull,ghtoken)
@@ -259,6 +260,14 @@ def main():
     #   - base branch for pull (as retrieved from github)
     #   - 'master'
     branch = args.branch or opt_branch or info['base']['ref'] or 'master'
+
+    pull_reference = '#' + pull
+
+    if branch == 'master':
+        push_mirrors = git_config_get('githubmerge.pushmirrors', default='').split(',')
+        push_mirrors = [p for p in push_mirrors if p]  # Filter empty string
+    else:
+        push_mirrors = []
 
     # Initialize source branches
     head_branch = 'pull/'+pull+'/head'
@@ -276,19 +285,19 @@ def main():
         subprocess.check_call([GIT,'fetch','-q',host_repo,'+refs/pull/'+pull+'/*:refs/heads/pull/'+pull+'/*',
                                                           '+refs/heads/'+branch+':refs/heads/'+base_branch])
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find pull request #%s or branch %s on %s." % (pull,branch,host_repo), file=stderr)
+        print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo), file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+head_branch], stdout=devnull, stderr=stdout)
         head_commit = subprocess.check_output([GIT,'log','-1','--pretty=format:%H',head_branch]).decode('utf-8')
         assert len(head_commit) == 40
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find head of pull request #%s on %s." % (pull,host_repo), file=stderr)
+        print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo), file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+merge_branch], stdout=devnull, stderr=stdout)
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find merge of pull request #%s on %s." % (pull,host_repo), file=stderr)
+        print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo), file=stderr)
         sys.exit(3)
     subprocess.check_call([GIT,'checkout','-q',base_branch])
     subprocess.call([GIT,'branch','-q','-D',local_merge_branch], stderr=devnull)
@@ -300,9 +309,9 @@ def main():
         os.chdir(toplevel)
         # Create unsigned merge commit.
         if title:
-            firstline = 'Merge #%s: %s' % (pull,title)
+            firstline = 'Merge {}: {}'.format(pull_reference,title)
         else:
-            firstline = 'Merge #%s' % (pull,)
+            firstline = 'Merge {}'.format(pull_reference)
         message = firstline + '\n\n'
         message += subprocess.check_output([GIT,'log','--no-merges','--topo-order','--pretty=format:%H %s (%an)',base_branch+'..'+head_branch]).decode('utf-8')
         message += '\n\nPull request description:\n\n  ' + body.replace('\n', '\n  ') + '\n'
@@ -330,7 +339,7 @@ def main():
             print("ERROR: Unable to compute tree hash")
             sys.exit(4)
 
-        print_merge_details(pull, title, branch, base_branch, head_branch, acks=None, message=None)
+        print_merge_details(pull_reference, title, branch, base_branch, head_branch, acks=None, message=None)
         print()
 
         # Run test command if configured.
@@ -380,7 +389,7 @@ def main():
             sys.exit(4)
 
         # Sign the merge commit.
-        print_merge_details(pull, title, branch, base_branch, head_branch, acks, message)
+        print_merge_details(pull_reference, title, branch, base_branch, head_branch, acks, message)
         while True:
             reply = ask_prompt("Type 's' to sign off on the above merge, or 'x' to reject and exit.").lower()
             if reply == 's':
@@ -406,9 +415,11 @@ def main():
 
     # Push the result.
     while True:
-        reply = ask_prompt("Type 'push' to push the result to %s, branch %s, or 'x' to exit without pushing." % (host_repo,branch)).lower()
+        reply = ask_prompt("Type 'push' to push the result to {}, branch {}, or 'x' to exit without pushing.".format(', '.join([host_repo] + push_mirrors), branch)).lower()
         if reply == 'push':
             subprocess.check_call([GIT,'push',host_repo,'refs/heads/'+branch])
+            for p_mirror in push_mirrors:
+                subprocess.check_call([GIT,'push',p_mirror,'refs/heads/'+branch])
             break
         elif reply == 'x':
             sys.exit(1)
