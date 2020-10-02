@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 '''
 Run the script providing the slug of the project and the slug of the old and new resource.
 The new resource should already have been created.
@@ -66,7 +66,7 @@ def migrate_resource(project, from_slug, to_slug, AUTH):
                 to_slug,
                 lang_entry['language_code']
             )
-            print "Reading language", lang_entry['language_code'], strings_from_url
+            print("Reading language", lang_entry['language_code'], strings_from_url)
             strings = requests.get(
                 SERVER + strings_from_url + "?details",
                 headers=headers,
@@ -79,7 +79,7 @@ def migrate_resource(project, from_slug, to_slug, AUTH):
                 # skip empty translations
                 translation_is_empty = False
                 if elem['pluralized']:
-                    for k,v in elem['translation'].items():
+                    for k,v in list(elem['translation'].items()):
                         if not v:
                             translation_is_empty = True
                 else:
@@ -103,10 +103,10 @@ def migrate_resource(project, from_slug, to_slug, AUTH):
                 strings_new.append(elem)
             strings = strings_new
             if not strings:
-                print "No translations - skipping"
+                print("No translations - skipping")
                 continue
 
-            print "Putting language", lang_entry['language_code'], strings_to_url
+            print("Putting language", lang_entry['language_code'], strings_to_url)
             response = requests.put(
                 SERVER + strings_to_url,
                 data=json.dumps(strings),
@@ -121,7 +121,7 @@ def migrate_resource(project, from_slug, to_slug, AUTH):
                     "reviewed": True
                 } for elem in reviewed]
 
-                print "Putting review statuses for language", lang_entry['language_code']
+                print("Putting review statuses for language", lang_entry['language_code'])
                 response = requests.put(
                     SERVER + strings_to_url,
                     data=json.dumps(s),
@@ -138,16 +138,16 @@ def migrate_resource(project, from_slug, to_slug, AUTH):
             error_msg = msg + response.text
             print(error_msg)
 
-        except Exception, e:
+        except Exception as e:
             error_msg = 'Unknown exception caught: %s' % (
-                unicode(e)).encode('utf-8')
+                str(e)).encode('utf-8')
             print(error_msg)
 
 
 def run():
 
     if not len(sys.argv) == 4:
-        print "You should do: python script_name.py <project> <resource_from> <resource_to>"
+        print("You should do: python script_name.py <project> <resource_from> <resource_to>")
         sys.exit()
 
     #from_project: the slug of the old project
@@ -156,7 +156,7 @@ def run():
     from_resource = sys.argv[2]
     to_resource = sys.argv[3]
 
-    username = raw_input("What's your Transifex username?")
+    username = input("What's your Transifex username?")
     pwd = getpass.getpass(prompt="..and your Transifex password?")
 
     # Your Transifex credentials
