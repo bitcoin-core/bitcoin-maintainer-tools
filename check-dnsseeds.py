@@ -12,20 +12,19 @@ SEEDS_TESTNET=["testnet-seed.bitcoin.jonasschnelli.ch","seed.tbtc.petertodd.org"
         "testnet-seed.bluematt.me","seed.testnet.bitcoin.sprovoost.nl"]
 
 def check_seed(x):
-    p = subprocess.Popen(["host",x], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    (out,err) = p.communicate(None)
-    out = out.strip()
+    p = subprocess.run(["host",x], capture_output=True, universal_newlines=True)
+    out = p.stdout
 
     # Parse matching lines
     addresses = []
-    for line in out.split(b"\n"):
-        if b"has address" in line or b"has IPv6 address" in line:
+    for line in out.splitlines():
+        if "has address" in line or "has IPv6 address" in line:
             addresses.append(line)
 
     if addresses:
-        print("\x1b[94mOK\x1b[0m   {} ({} results)".format(x, len(addresses)))
+        print(f"\x1b[94mOK\x1b[0m   {x} ({len(addresses)} results)")
     else:
-        print("\x1b[91mFAIL\x1b[0m {}".format(x))
+        print(f"\x1b[91mFAIL\x1b[0m {x}")
 
 if __name__ == '__main__':
     print("\x1b[90m* \x1b[97mMainnet\x1b[0m")
