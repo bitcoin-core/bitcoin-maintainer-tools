@@ -216,6 +216,8 @@ def parse_arguments():
     '''
     parser = argparse.ArgumentParser(description='Utility to merge, sign and push github pull requests',
             epilog=epilog)
+    parser.add_argument('--repo_from', metavar='repo_from', type=str, nargs='?',
+        help='The repo to fetch the pull request from. Useful for monotree repositories. Can only be specified when branch==master. (default: githubmerge.repository setting)')
     parser.add_argument('pull', metavar='PULL', type=int, nargs=1,
         help='Pull request ID to merge')
     parser.add_argument('branch', metavar='BRANCH', type=str, nargs='?',
@@ -241,19 +243,24 @@ def main():
 
     # Extract settings from command line
     args = parse_arguments()
+    repo_from = args.repo_from or repo
+    is_other_fetch_repo = repo_from != repo
     pull = str(args.pull[0])
 
     if host.startswith(('https:','http:')):
         host_repo = host+"/"+repo+".git"
+        host_repo_from = host+"/"+repo_from+".git"
     else:
         host_repo = host+":"+repo
+        host_repo_from = host+":"+repo_from
 
     # Receive pull information from github
-    info = retrieve_pr_info(repo,pull,ghtoken)
+    info = retrieve_pr_info(repo_from,pull,ghtoken)
     if info is None:
         sys.exit(1)
     title = info['title'].strip()
     body = info['body'].strip()
+    pull_reference = (repo_from if is_other_fetch_repo else '') + '#' + pull
     # precedence order for destination branch argument:
     #   - command line argument
     #   - githubmerge.branch setting
@@ -261,13 +268,14 @@ def main():
     #   - 'master'
     branch = args.branch or opt_branch or info['base']['ref'] or 'master'
 
-    pull_reference = '#' + pull
-
     if branch == 'master':
         push_mirrors = git_config_get('githubmerge.pushmirrors', default='').split(',')
         push_mirrors = [p for p in push_mirrors if p]  # Filter empty string
     else:
         push_mirrors = []
+        if is_other_fetch_repo:
+            print('ERROR: repo_from is only supported for the master development branch')
+            sys.exit(1)
 
     # Initialize source branches
     head_branch = 'pull/'+pull+'/head'
@@ -282,22 +290,22 @@ def main():
         print("ERROR: Cannot check out branch %s." % (branch), file=stderr)
         sys.exit(3)
     try:
-        subprocess.check_call([GIT,'fetch','-q',host_repo,'+refs/pull/'+pull+'/*:refs/heads/pull/'+pull+'/*',
+        subprocess.check_call([GIT,'fetch','-q',host_repo_from,'+refs/pull/'+pull+'/*:refs/heads/pull/'+pull+'/*',
                                                           '+refs/heads/'+branch+':refs/heads/'+base_branch])
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo), file=stderr)
+        print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo_from), file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+head_branch], stdout=devnull, stderr=stdout)
         head_commit = subprocess.check_output([GIT,'log','-1','--pretty=format:%H',head_branch]).decode('utf-8')
         assert len(head_commit) == 40
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo), file=stderr)
+        print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo_from), file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+merge_branch], stdout=devnull, stderr=stdout)
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo), file=stderr)
+        print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo_from), file=stderr)
         sys.exit(3)
     subprocess.check_call([GIT,'checkout','-q',base_branch])
     subprocess.call([GIT,'branch','-q','-D',local_merge_branch], stderr=devnull)
@@ -374,7 +382,7 @@ def main():
 
         # Retrieve PR comments and ACKs and add to commit message, store ACKs to print them with commit
         # description
-        comments = retrieve_pr_comments(repo,pull,ghtoken) + retrieve_pr_reviews(repo,pull,ghtoken)
+        comments = retrieve_pr_comments(repo_from,pull,ghtoken) + retrieve_pr_reviews(repo_from,pull,ghtoken)
         if comments is None:
             print("ERROR: Could not fetch PR comments and reviews",file=stderr)
             sys.exit(1)
