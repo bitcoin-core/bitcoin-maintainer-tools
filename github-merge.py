@@ -190,7 +190,7 @@ def make_acks_message(head_commit, acks) -> str:
 
 def print_merge_details(pull_reference, title, branch, base_branch, head_branch, acks, message):
     print('{}{}{} {} {}into {}{}'.format(ATTR_RESET+ATTR_PR,pull_reference,ATTR_RESET,title,ATTR_RESET+ATTR_PR,branch,ATTR_RESET))
-    subprocess.check_call([GIT,'log','--graph','--topo-order','--pretty=format:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
+    subprocess.check_call([GIT,'--no-pager','log','--graph','--topo-order','--pretty=format:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
     if acks is not None:
         if acks:
             print('{}ACKs:{}'.format(ATTR_PR, ATTR_RESET))
@@ -296,14 +296,14 @@ def main():
         print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo_from), file=stderr)
         sys.exit(3)
     try:
-        subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+head_branch], stdout=devnull, stderr=stdout)
-        head_commit = subprocess.check_output([GIT,'log','-1','--pretty=format:%H',head_branch]).decode('utf-8')
+        subprocess.check_call([GIT,'--no-pager','log','-q','-1','refs/heads/'+head_branch], stdout=devnull, stderr=stdout)
+        head_commit = subprocess.check_output([GIT,'--no-pager','log','-1','--pretty=format:%H',head_branch]).decode('utf-8')
         assert len(head_commit) == 40
     except subprocess.CalledProcessError:
         print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo_from), file=stderr)
         sys.exit(3)
     try:
-        subprocess.check_call([GIT,'log','-q','-1','refs/heads/'+merge_branch], stdout=devnull, stderr=stdout)
+        subprocess.check_call([GIT,'--no-pager','log','-q','-1','refs/heads/'+merge_branch], stdout=devnull, stderr=stdout)
     except subprocess.CalledProcessError:
         print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo_from), file=stderr)
         sys.exit(3)
@@ -321,7 +321,7 @@ def main():
         else:
             firstline = 'Merge {}'.format(pull_reference)
         message = firstline + '\n\n'
-        message += subprocess.check_output([GIT,'log','--no-merges','--topo-order','--pretty=format:%H %s (%an)',base_branch+'..'+head_branch]).decode('utf-8')
+        message += subprocess.check_output([GIT,'--no-pager','log','--no-merges','--topo-order','--pretty=format:%H %s (%an)',base_branch+'..'+head_branch]).decode('utf-8')
         message += '\n\nPull request description:\n\n  ' + body.replace('\n', '\n  ') + '\n'
         try:
             subprocess.check_call([GIT,'merge','-q','--commit','--no-edit','--no-ff','--no-gpg-sign','-m',message.encode('utf-8'),head_branch])
@@ -329,7 +329,7 @@ def main():
             print("ERROR: Cannot be merged cleanly.",file=stderr)
             subprocess.check_call([GIT,'merge','--abort'])
             sys.exit(4)
-        logmsg = subprocess.check_output([GIT,'log','--pretty=format:%s','-n','1']).decode('utf-8')
+        logmsg = subprocess.check_output([GIT,'--no-pager','log','--pretty=format:%s','-n','1']).decode('utf-8')
         if logmsg.rstrip() != firstline.rstrip():
             print("ERROR: Creating merge failed (already merged?).",file=stderr)
             sys.exit(4)
