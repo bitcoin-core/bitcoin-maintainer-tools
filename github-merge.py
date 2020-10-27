@@ -190,7 +190,7 @@ def make_acks_message(head_commit, acks) -> str:
 
 def print_merge_details(pull_reference, title, branch, base_branch, head_branch, acks, message):
     print('{}{}{} {} {}into {}{}'.format(ATTR_RESET+ATTR_PR,pull_reference,ATTR_RESET,title,ATTR_RESET+ATTR_PR,branch,ATTR_RESET))
-    subprocess.check_call([GIT,'--no-pager','log','--graph','--topo-order','--pretty=format:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
+    subprocess.check_call([GIT,'--no-pager','log','--graph','--topo-order','--pretty=tformat:'+COMMIT_FORMAT,base_branch+'..'+head_branch])
     if acks is not None:
         if acks:
             print('{}ACKs:{}'.format(ATTR_PR, ATTR_RESET))
