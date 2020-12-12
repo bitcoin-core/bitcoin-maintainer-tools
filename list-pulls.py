@@ -187,7 +187,7 @@ def parse_commit_message(msg):
     '''
     retval = CommitMetaData()
     for line in msg.splitlines():
-        m = re.match('Github-Pull: #?(\d+)', line, re.I)
+        m = re.match('GitHub-Pull: #?(\d+)', line, re.I)
         if m:
             retval.pull = int(m.group(1))
         m = re.match('Rebased-From: (.*)', line, re.I)

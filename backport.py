@@ -88,7 +88,7 @@ for t in to_backport:
         commit = repo.commit(cid)
         cmsg = commit.message
         cmsg += '\n'
-        cmsg += 'Github-Pull: %s\n' % t[0]
+        cmsg += 'GitHub-Pull: %s\n' % t[0]
         cmsg += 'Rebased-From: %s\n' % commit.hexsha
         if execute:
             if subprocess.call([GIT,'cherry-pick', commit.hexsha]):
