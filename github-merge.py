@@ -34,12 +34,14 @@ ATTR_RESET = ''
 ATTR_PR = ''
 ATTR_NAME = ''
 ATTR_WARN = ''
+ATTR_HL = ''
 COMMIT_FORMAT = '%H %s (%an)%d'
 if os.name == 'posix': # if posix, assume we can use basic terminal escapes
     ATTR_RESET = '\033[0m'
     ATTR_PR = '\033[1;36m'
     ATTR_NAME = '\033[0;36m'
     ATTR_WARN = '\033[1;31m'
+    ATTR_HL = '\033[95m'
     COMMIT_FORMAT = '%C(bold blue)%H%Creset %s %C(cyan)(%an)%Creset%C(green)%d%Creset'
 
 def git_config_get(option, default=None):
@@ -198,10 +200,20 @@ def print_merge_details(pull_reference, title, branch, base_branch, head_branch,
                 print('* {} {}({}){}'.format(ack_msg, ATTR_NAME, ack_name, ATTR_RESET))
         else:
             print('{}Top commit has no ACKs!{}'.format(ATTR_WARN, ATTR_RESET))
+    show_message = False
     if message is not None and '@' in message:
         print('{}Merge message contains an @!{}'.format(ATTR_WARN, ATTR_RESET))
+        show_message = True
     if message is not None and '<!-' in message:
         print('{}Merge message contains an html comment!{}'.format(ATTR_WARN, ATTR_RESET))
+        show_message = True
+    if show_message:
+        # highlight what might have tripped a warning
+        message = message.replace('@', ATTR_HL + '@' + ATTR_RESET)
+        message = message.replace('<!-', ATTR_HL + '<!-' + ATTR_RESET)
+        print('-' * 75)
+        print(message)
+        print('-' * 75)
 
 def parse_arguments():
     epilog = '''
