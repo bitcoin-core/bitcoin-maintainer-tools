@@ -17,11 +17,13 @@
 import os
 from sys import stdin,stdout,stderr
 import argparse
+import re
 import hashlib
 import subprocess
 import sys
 import json
 import codecs
+import unicodedata
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
@@ -42,6 +44,14 @@ if os.name == 'posix': # if posix, assume we can use basic terminal escapes
     ATTR_WARN = '\033[1;31m'
     COMMIT_FORMAT = '%C(bold blue)%H%Creset %s %C(cyan)(%an)%Creset%C(green)%d%Creset'
 
+def sanitize(s, newlines=False):
+    '''
+    Strip control characters (optionally except for newlines) from a string.
+    This prevent text data from doing potentially confusing or harmful things
+    with ANSI formatting, linefeeds bells etc.
+    '''
+    return ''.join(ch for ch in s if unicodedata.category(ch)[0] != "C" or (ch == '\n' and newlines))
+
 def git_config_get(option, default=None):
     '''
     Get named configuration option from git repository.
@@ -57,6 +67,26 @@ def get_response(req_url, ghtoken):
         req.add_header('Authorization', 'token ' + ghtoken)
     return urlopen(req)
 
+def sanitize_ghdata(rec):
+    '''
+    Sanitize comment/review record coming from github API in-place.
+    This currently sanitizes the following:
+    - ['title'] PR title (optional, may not have newlines)
+    - ['body'] Comment body (required, may have newlines)
+    It also checks rec['user']['login'] (required) to be a valid github username.
+
+    When anything more is used, update this function!
+    '''
+    if 'title' in rec: # only for PRs
+        rec['title'] = sanitize(rec['title'], newlines=False)
+    rec['body'] = sanitize(rec['body'], newlines=True)
+
+    # "Github username may only contain alphanumeric characters or hyphens'.
+    # Use \Z instead of $ to not match final newline only end of string.
+    if not re.match('[a-zA-Z0-9-]+\Z', rec['user']['login'], re.DOTALL):
+        raise ValueError('Github username contains invalid characters: {}'.format(sanitize(rec['user']['login'])))
+    return rec
+
 def retrieve_json(req_url, ghtoken, use_pagination=False):
     '''
     Retrieve json from github.
@@ -65,7 +95,7 @@ def retrieve_json(req_url, ghtoken, use_pagination=False):
     try:
         reader = codecs.getreader('utf-8')
         if not use_pagination:
-            return json.load(reader(get_response(req_url, ghtoken)))
+            return sanitize_ghdata(json.load(reader(get_response(req_url, ghtoken))))
 
         obj = []
         page_num = 1
@@ -81,7 +111,7 @@ def retrieve_json(req_url, ghtoken, use_pagination=False):
                     page_num = int(link_next[0][link_next[0].find("page=")+5:link_next[0].find(">")])
                     continue
             break
-        return obj
+        return [sanitize_ghdata(d) for d in obj]
     except HTTPError as e:
         error_message = e.read()
         print('Warning: unable to retrieve pull information from github: %s' % e)
