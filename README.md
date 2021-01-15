@@ -273,3 +273,48 @@ make-tag
 Make a new release tag, performing a few checks.
 
 Usage: `make-tag.py <tag>`.
+
+gitian-verify
+-------------
+
+A script to verify gitian deterministic build signatures for a release in one
+glance. It will print a matrix of signer versus build package, and a list of
+missing keys.
+
+To be able to read gitian's YAML files, it needs the `pyyaml` module. This can
+be installed from pip, for example:
+
+```bash
+pip3 install pyyaml
+```
+(or install the distribution package, in Debian/Ubuntu this is `python3-yaml`)
+
+Example usage: `./gitian-verify.py -r 0.21.0rc5 -d ../gitian.sigs -k ../bitcoin/contrib/gitian-keys/keys.txt`
+
+Where
+
+- `-r 0.21.0rc5` specifies the release to verify signatures for.
+- `-d ../gitian.sigs` specifies the directory where the repository with signatures, [gitian.sigs](https://github.com/bitcoin-core/gitian.sigs/) is checked out.
+- `../bitcoin/contrib/gitian-keys/keys.txt` is the path to `keys.txt` file inside the main repository that specifies the valid keys and what signers they belong to.
+
+Example output:
+```
+Signer            linux      osx-unsigned  win-unsigned   osx-signed    win-signed
+justinmoon        No Key        No Key        No Key        No Key        No Key
+laanwj              OK            OK            OK            OK            OK
+luke-jr             OK            OK            OK            OK            OK
+marco               -             OK            OK            OK            OK
+
+Missing keys
+norisg         3A51FF4D536C5B19BE8800A0F2FC9F9465A2995A  from GPG, from keys.txt
+...
+```
+
+See `--help` for the full list of options and their descriptions.
+
+The following statuses can be shown:
+
+- `Ok` Full match.
+- `No key` Signer name/key combination not in keys.txt, or key not known to GPG (which one of these it is, or both, will be listed under "Missing keys").
+- `Bad` Known key but invalid PGP signature.
+- `Mismatch`Correct PGP signature but mismatching binaries.
