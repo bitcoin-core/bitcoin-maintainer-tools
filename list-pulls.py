@@ -294,14 +294,14 @@ pull_meta = {}
 pull_labels = {}
 per_category = defaultdict(list)
 for pull in pulls_order:
-    filename = '%s/issues/%ixx/%i.json' % (GHMETA, pull/100, pull)
+    filename = f'{GHMETA}/issues/{pull//100}xx/{pull}.json'
     try:
         with open(filename, 'r') as f:
             data0 = json.load(f)
     except IOError as e:
         data0 = None
 
-    filename = '%s/issues/%ixx/%i-PR.json' % (GHMETA, pull/100, pull)
+    filename = f'{GHMETA}/issues/{pull//100}xx/{pull}-PR.json'
     try:
         with open(filename, 'r') as f:
             data1 = json.load(f)
