@@ -26,8 +26,8 @@ pull request gets updated while you're reviewing it, but before you click
 merge), and when using GPG signatures, that even a compromised GitHub
 couldn't mess with the sources.
 
-Setup
----------
+### Setup
+
 Configuring the github-merge tool for the bitcoin repository is done in the following way:
 
     git config githubmerge.repository bitcoin/bitcoin
@@ -38,8 +38,7 @@ If you want to use HTTPS instead of SSH for accessing GitHub, you need set the h
 
     git config githubmerge.host "https://github.com"  (default is "git@github.com", which implies SSH)
 
-Authentication (optional)
---------------------------
+### Authentication (optional)
 
 The API request limit for unauthenticated requests is quite low, but the
 limit for authenticated requests is much higher. If you start running
@@ -56,8 +55,8 @@ Then do:
 
     git config --global user.ghtoken "pasted token"
 
-Create and verify timestamps of merge commits
----------------------------------------------
+### Create and verify timestamps of merge commits
+
 To create or verify timestamps on the merge commits, install the OpenTimestamps
 client via `pip3 install opentimestamps-client`. Then, download the gpg wrapper
 `ots-git-gpg-wrapper.sh` and set it as git's `gpg.program`. See
@@ -207,6 +206,11 @@ OK   testnet-seed.bitcoin.jonasschnelli.ch (36 results)
 OK   seed.tbtc.petertodd.org (38 results)
 OK   testnet-seed.bluematt.me (5 results)
 ```
+
+delete non-reduced fuzz inputs
+------------------------------
+
+Refer to the documentation inside the script.
 
 fastcopy-chaindata
 -------------------
