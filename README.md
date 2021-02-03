@@ -321,4 +321,69 @@ The following statuses can be shown:
 - `Ok` Full match.
 - `No key` Signer name/key combination not in keys.txt, or key not known to GPG (which one of these it is, or both, will be listed under "Missing keys").
 - `Bad` Known key but invalid PGP signature.
-- `Mismatch`Correct PGP signature but mismatching binaries.
+- `Mismatch` Correct PGP signature but mismatching binaries.
+
+ghwatch
+-------
+
+This is a script to watch your github notifications in the terminal. It will show a table that is auto-updated every 10 minutes (configurable). It can be exited by pressing <kbd>ESC</kbd> or <kbd>Ctrl-C</kbd>.
+
+### Dependencies
+
+The `github` python module is a required dependency for github API access. This can be installed for your user using `pip3 install --user PyGithub`, or globally using your distribution's package manager e.g. `apt-get install python3-github`.
+
+### Configuration
+
+To generate a default configuration file in `~/.config/ghwatch/ghwatch.conf` do
+
+```
+./ghwatch.py --default-config
+```
+
+Then, edit the configuration file. Only thing that is necessary to change is `ghtoken`. You will need to create a github [authentication token](https://github.com/settings/tokens) then insert it here:
+
+```
+    "ghtoken": "<token from github>",
+```
+
+Depending on your browser preference you might want to change `browser`, this is the command that will be invoked when clicking on an issue number. It defaults to `null` which indicates to use the system web browser.
+
+If you want to see PR status (and other issue details like labels), point `meta` for the `bitcoin/bitcoin` repository to an up-to-date checkout of [bitcoin-gh-meta](https://github.com/zw/bitcoin-gh-meta). One way to keep this repository up to date is with a crontab entry that periodically does `git pull`.
+```
+    "meta": {
+        "bitcoin/bitcoin": "/path/to/bitcoin-gh-meta"
+    },
+```
+
+By editing the `label_prio` structure it is possible to affect what labels will be shown. The first label encountered in this list for an issue in the associated repository will be shown as the label in the table.
+
+### Command-line options
+
+Some other settings can be set through command line options. See `./ghwatch.py --help` for the list of command line options and their descriptions.
+
+### Display
+
+Most of the columns are self-explanatory, except for:
+
+- `r` this [notification reason](https://docs.github.com/en/rest/reference/activity#notification-reasons) from the GH API as a two-letter code. This can be:
+  - `as` assign
+  - `au` author
+  - `co` comment
+  - `in` invitation
+  - `ma` manual
+  - `me` mention
+  - `rr` review requested
+  - `sa` security alert
+  - `sc` state change
+  - `su` subscribed
+  - `tm` team mention
+- `k` the kind of notification as a letter. This can be:
+  - `P` pull request
+  - `I` issue
+  - `C` commit
+
+### Controls
+
+Left-click on a PR number to show details in a web browser.
+
+The program can be exited by pressing <kbd>ESC</kbd> or <kbd>Ctrl-C</kbd>.
