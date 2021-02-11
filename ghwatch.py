@@ -16,7 +16,7 @@ import webbrowser
 from github import Github, GithubObject
 
 from ghmeta import GhMeta
-from termlib.input import Key, clean_quit
+from termlib.input import Key
 from termlib.tableprinter import Column, TablePrinter
 from termlib.attr import Attr
 
@@ -64,6 +64,9 @@ DEFAULT_CONFIG = {
       'Refactoring',
     ]},
 }
+
+# A clickable link UI element
+ButtonInfo = namedtuple('ButtonInfo', ['x0', 'y0', 'x1', 'y1', 'url'])
 
 class Theme:
     '''
@@ -155,41 +158,6 @@ def parse_config_file(generate=False):
         print(f'No configuration file {config_file}, use --default-config to generate a default one.', file=sys.stderr)
         sys.exit(1)
     return config
-
-args = parse_args()
-config = parse_config_file(args.default_config)
-
-if not config['ghtoken']:
-    print(f'A github token is required to be set as "ghtoken" in {config_file}', file=sys.stderr)
-    exit(1)
-
-ghmeta = GhMeta(config['meta'])
-g = Github(config['ghtoken'])
-u = g.get_user()
-
-(cols, rows) = shutil.get_terminal_size((80, 25))
-W = cols - 70
-N = rows - 2
-if W < 10 or N < 5:
-    print('Terminal size too small')
-    sys.exit(1)
-
-exclude_reasons = set()
-if args.exclude_reasons:
-    exclude_reasons.update(args.exclude_reasons.split(','))
-
-pr = TablePrinter(sys.stdout, Attr, [
-        Column('date', 19),
-        Column('r', 2),
-        Column('repository', 24),
-        Column('k', 1),
-        Column('#', 5),
-        Column('label', 12),
-        Column('title', W),
-    ])
-
-# A clickable link UI element
-ButtonInfo = namedtuple('ButtonInfo', ['x0', 'y0', 'x1', 'y1', 'url'])
 
 def get_html_url(ghbase, rec):
     '''
@@ -301,31 +269,74 @@ def handle_mouse_click(b, config):
         else:
             subprocess.call(config['browser'] + [b.url], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
-buttons = draw()
-Key.start(hide_cursor=True)
+def set_window_size():
+    global pr, N
 
-t = 0
-try:
-    while True:
-        # auto-refresh periodically
-        if t >= args.refresh_time:
-            buttons = draw()
-            t = 0
+    (cols, rows) = shutil.get_terminal_size((80, 25))
+    W = cols - 70
+    N = rows - 2
+    if W < 10 or N < 5:
+        print('Terminal size too small')
+        sys.exit(1)
 
-        # handle key input
-        k = Key.get()
-        if not k:
-            Key.input_wait(1.0)
-            t += 1
-            continue
-        if k == 'escape':
-            break
-        # print(k, Key.mouse_pos)
-        if k == 'mouse_click':
-            # TODO: highlight button when clicked for a bit of feedback?
-            for b in buttons:
-                if b.x0 <= Key.mouse_pos[0] < b.x1 and b.y0 <= Key.mouse_pos[1] < b.y1:
-                    handle_mouse_click(b, config)
-finally:
-    Key.stop()
-    clean_quit()
+    pr = TablePrinter(sys.stdout, Attr, [
+        Column('date', 19),
+        Column('r', 2),
+        Column('repository', 24),
+        Column('k', 1),
+        Column('#', 5),
+        Column('label', 12),
+        Column('title', W),
+    ])
+
+def main():
+    global args, config, exclude_reasons, ghmeta, u
+
+    args = parse_args()
+    config = parse_config_file(args.default_config)
+    if not config['ghtoken']:
+        print(f'A github token is required to be set as "ghtoken" in {config_file}', file=sys.stderr)
+        exit(1)
+    ghmeta = GhMeta(config['meta'])
+    g = Github(config['ghtoken'])
+    u = g.get_user()
+
+    exclude_reasons = set()
+    if args.exclude_reasons:
+        exclude_reasons.update(args.exclude_reasons.split(','))
+
+    set_window_size()
+    buttons = draw()
+
+    Key.start(hide_cursor=True)
+
+    t = 0
+    try:
+        while True:
+            # auto-refresh periodically
+            if t >= args.refresh_time:
+                buttons = draw()
+                t = 0
+
+            # handle key input
+            k = Key.get()
+            if not k:
+                Key.input_wait(1.0)
+                t += 1
+                continue
+            if k == 'escape':
+                break
+            # print(k, Key.mouse_pos)
+            if k == 'mouse_click':
+                # TODO: highlight button when clicked for a bit of feedback?
+                for b in buttons:
+                    if b.x0 <= Key.mouse_pos[0] < b.x1 and b.y0 <= Key.mouse_pos[1] < b.y1:
+                        handle_mouse_click(b, config)
+            if k == 'resize':
+                set_window_size()
+                buttons = draw()
+    finally:
+        Key.stop()
+
+if __name__ == "__main__":
+    main()
