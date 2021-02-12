@@ -5,6 +5,7 @@ import fcntl
 import logging
 import os
 from select import select
+import signal
 import sys
 import termios
 import threading
@@ -92,6 +93,7 @@ class Key:
 
     @classmethod
     def start(cls, hide_cursor=False):
+        signal.signal(signal.SIGWINCH, cls._resize_handler)
         cls.stopping = False
         cls.reader = threading.Thread(target=cls._get_key)
         cls.reader.start()
@@ -165,6 +167,11 @@ class Key:
         sleep(0.01)
         cls.new.clear()
 
+    @classmethod
+    def _resize_handler(cls, signum, frame):
+        cls.list.append('resize')
+        cls.new.set()
+        
     @classmethod
     def _get_key(cls):
         """Get a key or escape sequence from stdin, convert to readable format and save to keys list. Meant to be run in it's own thread."""
