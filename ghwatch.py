@@ -33,6 +33,9 @@ DEFAULT_CONFIG = {
     # Repository with github metadata mirror (to get label data)
     'meta': {'bitcoin/bitcoin': '/path/to/bitcoin-gh-meta'},
 
+    # Interval in seconds for an automatic update (git pull) of github metadata mirror, if greater than 0.
+    'auto_update': 0,
+
     # Label priorities; the higher in this list, the higher the priority.
     # When a PR or issue has multiple labels, the one with the highest priority will be
     # shown. This is pretty arbitary, roughly going from specific to aspecific,
@@ -289,6 +292,17 @@ def set_window_size():
         Column('title', W),
     ])
 
+def pull_repositories(config):
+    '''
+    Use subprocess to "git pull" the configured metadata-repositories.
+    '''
+    try:
+        for repo, repo_path in config['meta'].items():
+            subprocess.run(['git','pull'], check=True, cwd=repo_path, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(e.stderr.decode())
+        raise
+
 def main():
     global args, config, exclude_reasons, ghmeta, u
 
@@ -297,6 +311,7 @@ def main():
     if not config['ghtoken']:
         print(f'A github token is required to be set as "ghtoken" in {config_file}', file=sys.stderr)
         exit(1)
+    auto_update = config.get('auto_update', 0)
     ghmeta = GhMeta(config['meta'])
     g = Github(config['ghtoken'])
     u = g.get_user()
@@ -305,28 +320,37 @@ def main():
     if args.exclude_reasons:
         exclude_reasons.update(args.exclude_reasons.split(','))
 
+    if auto_update:
+        pull_repositories(config)
+
     set_window_size()
     buttons = draw()
 
     Key.start(hide_cursor=True)
 
-    t = 0
+    refr_t = 0
+    meta_t = 0
     try:
         while True:
             # auto-refresh periodically
-            if t >= args.refresh_time:
+            if refr_t >= args.refresh_time:
                 buttons = draw()
-                t = 0
+                refr_t = 0
+
+            # auto-update (git pull) metadata-repo(s)
+            if auto_update and meta_t >= auto_update:
+                meta_t = 0
+                pull_repositories(config)
 
             # handle key input
             k = Key.get()
             if not k:
                 Key.input_wait(1.0)
-                t += 1
+                refr_t += 1
+                meta_t += 1
                 continue
             if k == 'escape':
                 break
-            # print(k, Key.mouse_pos)
             if k == 'mouse_click':
                 # TODO: highlight button when clicked for a bit of feedback?
                 for b in buttons:

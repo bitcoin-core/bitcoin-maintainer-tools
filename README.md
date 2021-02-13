@@ -326,7 +326,7 @@ The following statuses can be shown:
 ghwatch
 -------
 
-This is a script to watch your github notifications in the terminal. It will show a table that is auto-updated every 10 minutes (configurable). It can be exited by pressing <kbd>ESC</kbd> or <kbd>Ctrl-C</kbd>.
+This is a script to watch your github notifications in the terminal. It will show a table that is refreshed every 10 minutes (configurable). It can be exited by pressing <kbd>ESC</kbd> or <kbd>Ctrl-C</kbd>.
 
 ### Dependencies
 
@@ -348,12 +348,14 @@ Then, edit the configuration file. Only thing that is necessary to change is `gh
 
 Depending on your browser preference you might want to change `browser`, this is the command that will be invoked when clicking on an issue number. It defaults to `null` which indicates to use the system web browser.
 
-If you want to see PR status (and other issue details like labels), point `meta` for the `bitcoin/bitcoin` repository to an up-to-date checkout of [bitcoin-gh-meta](https://github.com/zw/bitcoin-gh-meta). One way to keep this repository up to date is with a crontab entry that periodically does `git pull`.
+If you want to see PR status (and other issue details like labels), point `meta` for the `bitcoin/bitcoin` repository to an up-to-date checkout of [bitcoin-gh-meta](https://github.com/zw/bitcoin-gh-meta).
 ```
     "meta": {
         "bitcoin/bitcoin": "/path/to/bitcoin-gh-meta"
     },
 ```
+
+To keep this repository up to date you can set the interval in seconds in 'auto_update', default is 0 (i.e. no automatic update). Be aware that [bitcoin-gh-meta](https://github.com/zw/bitcoin-gh-meta) is being refreshed every two hours (7200 seconds).
 
 By editing the `label_prio` structure it is possible to affect what labels will be shown. The first label encountered in this list for an issue in the associated repository will be shown as the label in the table.
 
