@@ -36,6 +36,9 @@ DEFAULT_CONFIG = {
     # Interval in seconds for an automatic update (git pull) of github metadata mirror, if greater than 0.
     'auto_update': 0,
 
+    # Whether to enable ordering of notifications by {reason, time}.
+    'sort_notifications': False,
+
     # Label priorities; the higher in this list, the higher the priority.
     # When a PR or issue has multiple labels, the one with the highest priority will be
     # shown. This is pretty arbitary, roughly going from specific to aspecific,
@@ -67,6 +70,10 @@ DEFAULT_CONFIG = {
       'Refactoring',
     ]},
 }
+
+# Priority list of notification reasons, from highest to lowest
+REASON_PRIO = ["assign", "review_requested", "mention", "author", "comment", "invitation",
+               "manual", "team_mention", "security_alert", "state_change", "subscribed"]
 
 # A clickable link UI element
 ButtonInfo = namedtuple('ButtonInfo', ['x0', 'y0', 'x1', 'y1', 'url'])
@@ -141,6 +148,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--days', '-d', type=int, default=7, help='Number of days to look back (default: 7)')
     parser.add_argument('--refresh-time', '-r', type=int, default=600, help='Refresh time in seconds in interactive mode (default: 600)')
     parser.add_argument('--default-config', action='store_const', const=True, default=False, help='Generate a default configuration file in ~/.config/ghwatch')
+    parser.add_argument('--sort', '-s', action='store_true', default=None, help="Sort notifications by reasons (and then time). Overrides 'sort_notifications' in the configuration file")
+    parser.add_argument('--no-sort', dest='sort', action='store_false', help="Don't sort notifications. Overrides 'sort_notifications' in the configuration file")
 
     return parser.parse_args()
 
@@ -183,6 +192,9 @@ def get_html_url(ghbase, rec):
     else: # TODO: releases and other things
         return None
 
+def priority_sort_key(item):
+    return (-REASON_PRIO.index(item.reason), item.updated_at)
+
 def draw():
     sys.stdout.write(Attr.CLEAR)
     pr.print_header(Theme.HEADER)
@@ -199,7 +211,12 @@ def draw():
     row = 0
     get_all = True if args.all else GithubObject.NotSet
     buttons = []
-    for rec in u.get_notifications(all=get_all, since=since):
+    issues = list(u.get_notifications(all=get_all, since=since))
+
+    if sort_notifications:
+        issues.sort(key=priority_sort_key, reverse=True)
+
+    for rec in issues:
         if rec.reason in exclude_reasons:
             continue
         # rec.subject.type  : PullRequest, Issue, Commit
@@ -304,7 +321,7 @@ def pull_repositories(config):
         raise
 
 def main():
-    global args, config, exclude_reasons, ghmeta, u
+    global args, config, exclude_reasons, ghmeta, sort_notifications, u
 
     args = parse_args()
     config = parse_config_file(args.default_config)
@@ -319,6 +336,11 @@ def main():
     exclude_reasons = set()
     if args.exclude_reasons:
         exclude_reasons.update(args.exclude_reasons.split(','))
+
+    if args.sort is None:
+        sort_notifications = config.get('sort_notifications', False)
+    else:
+        sort_notifications = args.sort
 
     if auto_update:
         pull_repositories(config)
