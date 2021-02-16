@@ -357,6 +357,8 @@ If you want to see PR status (and other issue details like labels), point `meta`
 
 To keep this repository up to date you can set the interval in seconds in 'auto_update', default is 0 (i.e. no automatic update). Be aware that [bitcoin-gh-meta](https://github.com/zw/bitcoin-gh-meta) is being refreshed every two hours (7200 seconds).
 
+Sorting the notifications by {reason, time} can be enabled with the 'sort_notifications' boolean field (default=false).
+
 By editing the `label_prio` structure it is possible to affect what labels will be shown. The first label encountered in this list for an issue in the associated repository will be shown as the label in the table.
 
 ### Command-line options
