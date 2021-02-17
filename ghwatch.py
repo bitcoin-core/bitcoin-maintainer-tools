@@ -195,7 +195,20 @@ def get_html_url(ghbase, rec):
 def priority_sort_key(item):
     return (-REASON_PRIO.index(item.reason), item.updated_at)
 
-def draw():
+def github_load(user):
+    '''
+    Load the notifications from github and return them
+    '''
+    since = datetime.datetime.utcnow() - datetime.timedelta(days=args.days)
+    get_all = True if args.all else GithubObject.NotSet
+    notifications = list(user.get_notifications(all=get_all, since=since))
+
+    if sort_notifications:
+        notifications.sort(key=priority_sort_key, reverse=True)
+
+    return notifications
+
+def draw(notifications):
     sys.stdout.write(Attr.CLEAR)
     pr.print_header(Theme.HEADER)
     issue_column = pr.column_info(4)
@@ -207,16 +220,10 @@ def draw():
     # that specifies how often (in seconds) you are allowed to poll. In times of
     # high server load, the time may increase. Please obey the header."
 
-    since = datetime.datetime.utcnow() - datetime.timedelta(days=args.days)
     row = 0
-    get_all = True if args.all else GithubObject.NotSet
     buttons = []
-    issues = list(u.get_notifications(all=get_all, since=since))
 
-    if sort_notifications:
-        issues.sort(key=priority_sort_key, reverse=True)
-
-    for rec in issues:
+    for rec in notifications:
         if rec.reason in exclude_reasons:
             continue
         # rec.subject.type  : PullRequest, Issue, Commit
@@ -321,7 +328,7 @@ def pull_repositories(config):
         raise
 
 def main():
-    global args, config, exclude_reasons, ghmeta, sort_notifications, u
+    global args, config, exclude_reasons, ghmeta, sort_notifications
 
     args = parse_args()
     config = parse_config_file(args.default_config)
@@ -330,8 +337,8 @@ def main():
         exit(1)
     auto_update = config.get('auto_update', 0)
     ghmeta = GhMeta(config['meta'])
-    g = Github(config['ghtoken'])
-    u = g.get_user()
+    gh = Github(config['ghtoken'])
+    user = gh.get_user()
 
     exclude_reasons = set()
     if args.exclude_reasons:
@@ -346,7 +353,8 @@ def main():
         pull_repositories(config)
 
     set_window_size()
-    buttons = draw()
+    notifications = github_load(user)
+    buttons = draw(notifications)
 
     Key.start(hide_cursor=True)
 
@@ -356,7 +364,8 @@ def main():
         while True:
             # auto-refresh periodically
             if refr_t >= args.refresh_time:
-                buttons = draw()
+                notifications = github_load(user)
+                buttons = draw(notifications)
                 refr_t = 0
 
             # auto-update (git pull) metadata-repo(s)
@@ -380,7 +389,7 @@ def main():
                         handle_mouse_click(b, config)
             if k == 'resize':
                 set_window_size()
-                buttons = draw()
+                buttons = draw(notifications)
     finally:
         Key.stop()
 
