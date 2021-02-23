@@ -183,12 +183,19 @@ def get_html_url(ghbase, rec):
     if not m:
         return None
     idx = m.group(1)
+
+    comment_n = ''
+    if rec.subject.latest_comment_url:
+        m = re.match('.*\/comments\/([0-9a-f]+)$', rec.subject.latest_comment_url)
+        if m:
+            comment_n = '#issuecomment-' + m.group(1)
+
     if rec.subject.type == 'PullRequest':
-        return f'{ghbase}{rec.repository.full_name}/pull/{idx}'
+        return f'{ghbase}{rec.repository.full_name}/pull/{idx}{comment_n}'
     if rec.subject.type == 'Issue':
-        return f'{ghbase}{rec.repository.full_name}/issues/{idx}'
+        return f'{ghbase}{rec.repository.full_name}/issues/{idx}{comment_n}'
     elif rec.subject.type == 'Commit':
-        return f'{ghbase}{rec.repository.full_name}/commit/{idx}'
+        return f'{ghbase}{rec.repository.full_name}/commit/{idx}{comment_n}'
     else: # TODO: releases and other things
         return None
 
