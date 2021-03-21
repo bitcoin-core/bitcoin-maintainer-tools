@@ -1,20 +1,20 @@
 diff --git a/src/bench/bench.h b/src/bench/bench.h
-index bafc7f871..3e75d4087 100644
+index 22f06d8cb..661a31911 100644
 --- a/src/bench/bench.h
 +++ b/src/bench/bench.h
 @@ -58,6 +58,6 @@ public:
  }
- // BENCHMARK(foo) expands to:  benchmark::BenchRunner bench_11foo("foo");
+ // BENCHMARK(foo) expands to:  benchmark::BenchRunner bench_11foo("foo", foo);
  #define BENCHMARK(n) \
--    benchmark::BenchRunner BOOST_PP_CAT(bench_, BOOST_PP_CAT(__LINE__, n))(BOOST_PP_STRINGIZE(n), n);
-+    benchmark::BenchRunner BOOST_PP_CAT(bench_, BOOST_PP_CAT(0, n))(BOOST_PP_STRINGIZE(n), n);
+-    benchmark::BenchRunner PASTE2(bench_, PASTE2(__LINE__, n))(STRINGIZE(n), n);
++    benchmark::BenchRunner PASTE2(bench_, PASTE2(0, n))(STRINGIZE(n), n);
  
  #endif // BITCOIN_BENCH_BENCH_H
 diff --git a/src/clientversion.cpp b/src/clientversion.cpp
-index 993967a18..904f6b5c3 100644
+index 29c38e2d3..46a042702 100644
 --- a/src/clientversion.cpp
 +++ b/src/clientversion.cpp
-@@ -41,7 +41,7 @@ const std::string CLIENT_NAME("Satoshi");
+@@ -40,7 +40,7 @@ const std::string CLIENT_NAME("Satoshi");
      #endif
  #endif
  
@@ -24,7 +24,7 @@ index 993967a18..904f6b5c3 100644
  static std::string FormatVersion(int nVersion)
  {
 diff --git a/src/compat/assumptions.h b/src/compat/assumptions.h
-index 4b0b224c6..d80ac1004 100644
+index 5f50cde3f..5feefc79b 100644
 --- a/src/compat/assumptions.h
 +++ b/src/compat/assumptions.h
 @@ -13,9 +13,6 @@
@@ -35,13 +35,26 @@ index 4b0b224c6..d80ac1004 100644
 -# error "Bitcoin cannot be compiled without assertions."
 -#endif
  
- // Assumption: We assume a C++11 (ISO/IEC 14882:2011) compiler (minimum requirement).
- // Example(s): We assume the presence of C++11 features everywhere :-)
+ // Assumption: We assume a C++17 (ISO/IEC 14882:2017) compiler (minimum requirement).
+ // Example(s): We assume the presence of C++17 features everywhere :-)
+diff --git a/src/logging.h b/src/logging.h
+index 436f0cd12..bee77fd93 100644
+--- a/src/logging.h
++++ b/src/logging.h
+@@ -180,7 +180,7 @@ static inline void LogPrintf_(const std::string& logging_function, const std::st
+     }
+ }
+ 
+-#define LogPrintf(...) LogPrintf_(__func__, __FILE__, __LINE__, __VA_ARGS__)
++#define LogPrintf(...) LogPrintf_(__func__, __FILE__, 0, __VA_ARGS__)
+ 
+ // Use a macro instead of a function for conditional logging to prevent
+ // evaluating arguments when logging for the category is not enabled.
 diff --git a/src/rest.cpp b/src/rest.cpp
-index 949cc9d84..5877b4989 100644
+index 71426a4dc..6ce4066c2 100644
 --- a/src/rest.cpp
 +++ b/src/rest.cpp
-@@ -82,7 +82,7 @@ static NodeContext* GetNodeContext(const util::Ref& context, HTTPRequest* req)
+@@ -81,7 +81,7 @@ static NodeContext* GetNodeContext(const util::Ref& context, HTTPRequest* req)
                  strprintf("%s:%d (%s)\n"
                            "Internal bug detected: Node context not found!\n"
                            "You may report this issue here: %s\n",
@@ -51,10 +64,10 @@ index 949cc9d84..5877b4989 100644
      }
      return node;
 diff --git a/src/sync.h b/src/sync.h
-index 41f4e43bd..1a50222af 100644
+index 53213c208..fd127d319 100644
 --- a/src/sync.h
 +++ b/src/sync.h
-@@ -76,8 +76,8 @@ void AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLi
+@@ -78,8 +78,8 @@ void AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLi
  inline void DeleteLock(void* cs) {}
  inline bool LockStackEmpty() { return true; }
  #endif
@@ -65,7 +78,7 @@ index 41f4e43bd..1a50222af 100644
  
  /**
   * Template mixin that adds -Wthread-safety locking annotations and lock order
-@@ -222,21 +222,21 @@ public:
+@@ -224,28 +224,28 @@ public:
       friend class reverse_lock;
  };
  
@@ -89,16 +102,24 @@ index 41f4e43bd..1a50222af 100644
  
  #define ENTER_CRITICAL_SECTION(cs)                            \
      {                                                         \
--        EnterCritical(#cs, __FILE__, __LINE__, (void*)(&cs)); \
-+        EnterCritical(#cs, __FILE__, 0, (void*)(&cs)); \
+-        EnterCritical(#cs, __FILE__, __LINE__, &cs); \
++        EnterCritical(#cs, __FILE__, 0, &cs); \
          (cs).lock();                                          \
      }
  
+ #define LEAVE_CRITICAL_SECTION(cs)                                          \
+     {                                                                       \
+         std::string lockname;                                               \
+-        CheckLastCritical((void*)(&cs), lockname, #cs, __FILE__, __LINE__); \
++        CheckLastCritical((void*)(&cs), lockname, #cs, __FILE__, 0); \
+         (cs).unlock();                                                      \
+         LeaveCritical();                                                    \
+     }
 diff --git a/src/util/check.h b/src/util/check.h
-index 9edf39449..fce0213c4 100644
+index bc62da344..d03e544e7 100644
 --- a/src/util/check.h
 +++ b/src/util/check.h
-@@ -36,16 +36,12 @@ class NonFatalCheckError : public std::runtime_error
+@@ -36,15 +36,12 @@ class NonFatalCheckError : public std::runtime_error
                  strprintf("%s:%d (%s)\n"                          \
                            "Internal bug detected: '%s'\n"         \
                            "You may report this issue here: %s\n", \
@@ -112,7 +133,6 @@ index 9edf39449..fce0213c4 100644
 -#if defined(NDEBUG)
 -#error "Cannot compile without assertions!"
 -#endif
--
- /** Helper for Assert(). TODO remove in C++14 and replace `decltype(get_pure_r_value(val))` with `T` (templated lambda) */
+ 
+ /** Helper for Assert() */
  template <typename T>
- T get_pure_r_value(T&& val)
