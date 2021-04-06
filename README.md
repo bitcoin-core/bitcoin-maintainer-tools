@@ -5,13 +5,21 @@ github-merge
 
 A small script to automate merging pull-requests securely and sign them with GPG.
 
-For example:
+For example, if the "to" repo is identical to the "from" repo:
 
 ```bash
 ./github-merge.py 1234
 ```
 
 (in any git repository) will help you merge pull request #1234 for the configured repository.
+
+Otherwise, for a differing "from" repo:
+
+```bash
+./github-merge.py --repo_from=bitcoin-core/gui 1234
+```
+
+will fetch the pull request from another monotree repository. Be sure to also set `githubmerge.pushmirrors` (see below).
 
 What it does:
 * Fetch master and the pull request.
@@ -31,6 +39,7 @@ couldn't mess with the sources.
 Configuring the github-merge tool for the bitcoin repository is done in the following way:
 
     git config githubmerge.repository bitcoin/bitcoin
+    git config githubmerge.pushmirrors "git@github.com:bitcoin-core/gui.git,git@github.com:YourPrivateMirror/bitcoin-core.git"
     git config githubmerge.testcmd "make -j4 check" (adapt to whatever you want to use for testing)
     git config --global user.signingkey mykeyid
 
