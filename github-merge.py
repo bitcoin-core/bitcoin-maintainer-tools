@@ -290,7 +290,7 @@ def main():
         sys.exit(1)
     title = info['title'].strip()
     body = info['body'].strip()
-    pull_reference = (repo_from if is_other_fetch_repo else '') + '#' + pull
+    pull_reference = repo_from + '#' + pull
     # precedence order for destination branch argument:
     #   - command line argument
     #   - githubmerge.branch setting
