@@ -16,7 +16,7 @@ For example, if the "to" repo is identical to the "from" repo:
 Otherwise, for a differing "from" repo:
 
 ```bash
-./github-merge.py --repo_from=bitcoin-core/gui 1234
+./github-merge.py --repo-from=bitcoin-core/gui 1234
 ```
 
 will fetch the pull request from another monotree repository. Be sure to also set `githubmerge.pushmirrors` (see below).
