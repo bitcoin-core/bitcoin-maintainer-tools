@@ -5,9 +5,10 @@ Verify all gitian signatures for a release and tabulate the outcome.
 import argparse
 import collections
 from enum import Enum, IntFlag
+import gpg
 import os
 import re
-import subprocess
+import sys
 from typing import Dict, List, Set, Optional, Tuple
 import yaml
 
@@ -20,8 +21,9 @@ class Status(Enum):
     NO_FILE = 1            # Result file or sig file not found
     UNKNOWN_KEY = 2        # Name/key combination not in keys.txt
     MISSING_KEY = 3        # Unknown PGP key
-    INVALID_SIG = 4        # Known key but invalid signature
-    MISMATCH = 5           # Correct signature but mismatching file
+    EXPIRED_KEY = 4        # PGP key is expired
+    INVALID_SIG = 5        # Known key but invalid signature
+    MISMATCH = 6           # Correct signature but mismatching file
 
 class Missing(IntFlag):
     '''Bit field for missing keys,'''
@@ -41,6 +43,7 @@ class Attr:
         Status.OK:             ('\x1b[92mOK\x1b[0m', 2),
         Status.NO_FILE:        ('\x1b[90m-\x1b[0m', 1),
         Status.MISSING_KEY:    ('\x1b[96mNo Key\x1b[0m', 6),
+        Status.EXPIRED_KEY:    ('\x1b[96mExpired\x1b[0m', 7),
         Status.INVALID_SIG:    ('\x1b[91mBad\x1b[0m', 3),
         Status.MISMATCH:       ('\x1b[91mMismatch\x1b[0m', 8),
     }
@@ -53,11 +56,12 @@ class VerificationInterface:
     # Error values from verify_detached
     MISSING_KEY = 0
     BAD = 1
+    EXPIRED_KEY = 2
 
-    def __init__(self, verify_program: str) -> None:
-        self.verify_program = verify_program
+    def __init__(self) -> None:
+        self.ctx = gpg.Context()
 
-    def verify_detached(self, sig_path: str, result_path: str) -> VerificationResult:
+    def verify_detached(self, sig: bytes, result: bytes) -> VerificationResult:
         '''
         Verify a detached GPG signature.
         This function takes a OS path to the signature, and to the signed data.
@@ -65,39 +69,32 @@ class VerificationInterface:
         - verify_ok is a bool specifying if the signature was correctly verified.
         - primary_key is the key fingerprint of the primary key (or None if not known)
         - sub_key is the key fingerprint of the signing subkey used (or None if not known)
-        - error is a an error code (if !verify_ok) MISSING_KEY or BAD
+        - error is a an error code (if !verify_ok) MISSING_KEY, EXPIRED_KEY or BAD
         '''
-        r = subprocess.run([self.verify_program, "--quiet", "--batch", "--verify", sig_path, result_path],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            (_, r) = self.ctx.verify(signed_data=result, signature=sig)
+        except gpg.errors.BadSignatures as e:
+            r = e.result
+            verify_ok = False
+        else:
+            verify_ok = True
 
-        # Extract subkey fingerprint from output
-        errors = r.stderr.decode().split('\n')
+        assert(len(r.signatures) == 1) # we don't handle multiple signatures in one assert file
         p_fingerprint = None
-        s_fingerprint = None
-        for line in errors:
-            m = re.match('gpg:                using .+ key (.*)', line)
-            if m:
-                s_fingerprint = m.group(1)
-
-            m = re.match('     Subkey fingerprint: (.*)', line)
-            if m:
-                # fingerprint will have spaces in them, remove them
-                s_fingerprint = m.group(1).replace(' ', '')
-
-            m = re.match('Primary key fingerprint: (.*)', line)
-            if m:
-                # fingerprint will have spaces in them, remove them
-                p_fingerprint = m.group(1).replace(' ', '')
-
+        s_fingerprint = r.signatures[0].fpr
         error = None
-        if r.returncode != 0:
-            if "gpg: Can't check signature: No public key" in errors:
-                error = VerificationInterface.MISSING_KEY
-            else:
+        if r.signatures[0].summary & gpg.constants.sigsum.KEY_MISSING:
+            error = VerificationInterface.MISSING_KEY
+        else: # key is known to gnupg
+            if r.signatures[0].summary & gpg.constants.sigsum.KEY_EXPIRED:
+                error = VerificationInterface.EXPIRED_KEY
+            elif not verify_ok: # verification failed, but no specific error to report
                 error = VerificationInterface.BAD
+            key = self.ctx.get_key(s_fingerprint)
+            p_fingerprint = key.fpr
 
         return VerificationResult(
-                verify_ok=(r.returncode == 0),
+                verify_ok=verify_ok,
                 p_fingerprint=p_fingerprint,
                 s_fingerprint=s_fingerprint,
                 error=error)
@@ -151,7 +148,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--release', '-r', help='Release version (for example 0.21.0rc5)', required=True)
     parser.add_argument('--directory', '-d', help='Signatures directory', required=True)
     parser.add_argument('--keys', '-k', help='Path to keys.txt', required=True)
-    parser.add_argument('--verify-program', '-p', default='gpg', help='Specify verification program to use (default is gpg)')
     parser.add_argument('--compare-to', '-c', help="Compare other manifests to COMPARE_TO's, if not given pick first")
 
     return parser.parse_args()
@@ -188,7 +184,11 @@ def validate_build(verifier: VerificationInterface,
             results[signer_name] = Status.NO_FILE
             continue
 
-        vres = verifier.verify_detached(sig_path, result_path)
+        with open(sig_path, 'rb') as f:
+            sig_data = f.read()
+        with open(result_path, 'rb') as f:
+            result_data = f.read()
+        vres = verifier.verify_detached(sig_data, result_data)
 
         fingerprint = vres.p_fingerprint or vres.s_fingerprint
         # Check if the (signer, fingerprint) pair is specified in keys.txt (either the primary
@@ -206,10 +206,11 @@ def validate_build(verifier: VerificationInterface,
                 # missing key, store fingerprint for reporting
                 missing_keys[(signer_name, fingerprint)] |= Missing.GPG
                 results[signer_name] = Status.MISSING_KEY
-                continue
+            elif vres.error == VerificationInterface.EXPIRED_KEY:
+                results[signer_name] = Status.EXPIRED_KEY
             else:
                 results[signer_name] = Status.INVALID_SIG
-                continue
+            continue
         else: # Valid PGP signature
             # if the key, signer pair is not in keys.txt, we can't trust it so
             # skip out here
@@ -217,8 +218,7 @@ def validate_build(verifier: VerificationInterface,
                 results[signer_name] = Status.MISSING_KEY
                 continue
 
-            with open(result_path, 'r') as f:
-                result = dict(yaml.safe_load(f))
+            result = dict(yaml.safe_load(result_data))
 
             if reference is not None and result['out_manifest'] != reference:
                 results[signer_name] = Status.MISMATCH
@@ -241,7 +241,7 @@ def main() -> None:
 
     builds = get_builds_for(args.release)
     keys = load_keys_txt(args.keys)
-    verifier = VerificationInterface(args.verify_program)
+    verifier = VerificationInterface()
 
     # build descriptor is only used to determine the package name
     # maybe we could derive it otherwise (or simply look for *any* assert file)
@@ -265,6 +265,10 @@ def main() -> None:
     for result in all_results.values():
         all_signers_set.update(result.keys())
     all_signers = sorted(list(all_signers_set), key=str.casefold)
+
+    if not all_signers:
+        print(f'No build results were found in {args.directory} for release {args.release}', file=sys.stderr)
+        exit(1)
 
     name_maxlen = max(max((len(name) for name in all_signers)), 8)
     build_maxlen = max(max(len(build.build_name) for build in builds),

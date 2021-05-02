@@ -294,13 +294,13 @@ A script to verify gitian deterministic build signatures for a release in one
 glance. It will print a matrix of signer versus build package, and a list of
 missing keys.
 
-To be able to read gitian's YAML files, it needs the `pyyaml` module. This can
-be installed from pip, for example:
+To be able to read gitian's YAML files and verify PGP signatures, it needs the
+`pyyaml` and `gpg` modules. This can be installed from pip, for example:
 
 ```bash
-pip3 install pyyaml
+pip3 install --user pyyaml gpg
 ```
-(or install the distribution package, in Debian/Ubuntu this is `python3-yaml`)
+(or install the distribution package, in Debian/Ubuntu this is `python3-yaml` and `python3-gpg`)
 
 Example usage: `./gitian-verify.py -r 0.21.0rc5 -d ../gitian.sigs -k ../bitcoin/contrib/gitian-keys/keys.txt`
 
@@ -329,6 +329,7 @@ The following statuses can be shown:
 
 - `Ok` Full match.
 - `No key` Signer name/key combination not in keys.txt, or key not known to GPG (which one of these it is, or both, will be listed under "Missing keys").
+- `Expired` Known key but it has expired.
 - `Bad` Known key but invalid PGP signature.
 - `Mismatch` Correct PGP signature but mismatching binaries.
 
