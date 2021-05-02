@@ -246,7 +246,7 @@ def parse_arguments():
     '''
     parser = argparse.ArgumentParser(description='Utility to merge, sign and push github pull requests',
             epilog=epilog)
-    parser.add_argument('--repo_from', metavar='repo_from', type=str, nargs='?',
+    parser.add_argument('--repo-from', '-r', metavar='repo_from', type=str, nargs='?',
         help='The repo to fetch the pull request from. Useful for monotree repositories. Can only be specified when branch==master. (default: githubmerge.repository setting)')
     parser.add_argument('pull', metavar='PULL', type=int, nargs=1,
         help='Pull request ID to merge')
@@ -304,7 +304,7 @@ def main():
     else:
         push_mirrors = []
         if is_other_fetch_repo:
-            print('ERROR: repo_from is only supported for the master development branch')
+            print('ERROR: --repo-from is only supported for the master development branch')
             sys.exit(1)
 
     # Initialize source branches
