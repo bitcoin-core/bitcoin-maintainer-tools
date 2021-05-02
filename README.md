@@ -302,6 +302,9 @@ pip3 install --user pyyaml gpg
 ```
 (or install the distribution package, in Debian/Ubuntu this is `python3-yaml` and `python3-gpg`)
 
+The `gpg` module requires the [gpgme](https://www.gnupg.org/software/gpgme/index.html) library
+which is usually present on Linux, and can be installed with `brew install gpgme` on macOS. 
+
 Example usage: `./gitian-verify.py -r 0.21.0rc5 -d ../gitian.sigs -k ../bitcoin/contrib/gitian-keys/keys.txt`
 
 Where
