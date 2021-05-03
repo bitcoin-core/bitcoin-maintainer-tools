@@ -61,7 +61,7 @@ class VerificationInterface:
     EXPIRED_KEY = 2
 
     def __init__(self) -> None:
-        self.ctx = gpg.Context()
+        self.ctx = gpg.Context(offline=True)
 
     def verify_detached(self, sig: bytes, result: bytes) -> VerificationResult:
         '''
