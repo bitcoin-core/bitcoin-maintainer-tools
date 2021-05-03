@@ -159,6 +159,7 @@ def validate_build(verifier: VerificationInterface,
         release_path: str,
         result_file: str,
         sig_file: str,
+        verbose: bool,
         keys: List[Tuple[str, str]]) -> Tuple[Dict[str, Status], Dict[Tuple[str, str], Missing]]:
     '''Validate a single build (directory in gitian.sigs).'''
     if not os.path.isdir(release_path):
@@ -176,6 +177,8 @@ def validate_build(verifier: VerificationInterface,
     mismatches = {}
     missing_keys: Dict[Tuple[str, str], Missing] = collections.defaultdict(lambda: Missing(0))
     for signer_name in os.listdir(release_path):
+        if verbose:
+            print(f'For { signer_name }...')
         signer_dir = os.path.join(release_path, signer_name)
         if not os.path.isdir(signer_dir):
             continue
@@ -233,6 +236,9 @@ def validate_build(verifier: VerificationInterface,
             if reference is None:
                 reference = result['out_manifest']
 
+    if verbose:
+        print(results[signer_name])
+
     return (results, missing_keys, mismatches)
 
 def center(s: str, width: int, total_width: int) -> str:
@@ -253,6 +259,9 @@ def main() -> None:
     all_results = {}
     all_mismatches = {}
     for build in builds:
+        if args.verbose:
+            print(f'Validate { build.build_name } build...')
+
         release_path = os.path.join(args.directory, build.dir_name)
 
         result_file = f'{build.package_name}-build.assert'
@@ -260,7 +269,7 @@ def main() -> None:
 
         # goal: create a matrix signer × variant → status
         #       keep a list of unknown key fingerprints
-        (results, missing_keys, mismatches) = validate_build(verifier, args.compare_to, release_path, result_file, sig_file, keys)
+        (results, missing_keys, mismatches) = validate_build(verifier, args.compare_to, release_path, result_file, sig_file, args.verbose, keys)
         all_results[build.build_name] = results
         for k, v in missing_keys.items():
             all_missing_keys[k] |= v
