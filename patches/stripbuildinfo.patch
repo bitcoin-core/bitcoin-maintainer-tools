@@ -51,10 +51,10 @@ index 436f0cd12..bee77fd93 100644
  // Use a macro instead of a function for conditional logging to prevent
  // evaluating arguments when logging for the category is not enabled.
 diff --git a/src/rest.cpp b/src/rest.cpp
-index 71426a4dc..6ce4066c2 100644
+index d41f374c4..b2c89d838 100644
 --- a/src/rest.cpp
 +++ b/src/rest.cpp
-@@ -81,7 +81,7 @@ static NodeContext* GetNodeContext(const util::Ref& context, HTTPRequest* req)
+@@ -84,7 +84,7 @@ static NodeContext* GetNodeContext(const std::any& context, HTTPRequest* req)
                  strprintf("%s:%d (%s)\n"
                            "Internal bug detected: Node context not found!\n"
                            "You may report this issue here: %s\n",
@@ -62,7 +62,7 @@ index 71426a4dc..6ce4066c2 100644
 +                          __FILE__, 0, __func__, PACKAGE_BUGREPORT));
          return nullptr;
      }
-     return node;
+     return node_context;
 diff --git a/src/sync.h b/src/sync.h
 index 53213c208..fd127d319 100644
 --- a/src/sync.h
