@@ -154,7 +154,6 @@ def postprocess_translations(reduce_diff_hacks=False):
     for (filename,filepath) in all_ts_files():
         os.rename(filepath, filepath+'.orig')
 
-    have_errors = False
     for (filename,filepath) in all_ts_files('.orig'):
         # pre-fixups to cope with transifex output
         parser = ET.XMLParser(encoding='utf-8') # need to override encoding because 'utf8' is not understood only 'utf-8'
@@ -189,7 +188,6 @@ def postprocess_translations(reduce_diff_hacks=False):
                     if not valid: # set type to unfinished and clear string if invalid
                         translation_node.clear()
                         translation_node.set('type', 'unfinished')
-                        have_errors = True
 
                 # Remove location tags
                 for location in message.findall('location'):
@@ -219,7 +217,6 @@ def postprocess_translations(reduce_diff_hacks=False):
                 f.write(out)
         else:
             tree.write(filepath, encoding='utf-8')
-    return have_errors
 
 def update_git():
     '''
