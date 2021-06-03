@@ -204,6 +204,9 @@ def postprocess_translations(reduce_diff_hacks=False):
                 if not postprocess_message(filename, message):
                     context.remove(message);
 
+            if not context.findall('message'):
+                root.remove(context)
+
         # check if document is (virtually) empty, and remove it if so
         num_messages = 0
         for context in root.findall('context'):
