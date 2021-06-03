@@ -143,6 +143,39 @@ def contains_bitcoin_addr(text, errors):
         return True
     return False
 
+def postprocess_message(filename, message):
+    numerus = message.get('numerus') == 'yes'
+    source = message.find('source').text
+    translation_node = message.find('translation')
+    # pick all numerusforms
+    if numerus:
+        translations = [i.text for i in translation_node.findall('numerusform')]
+    else:
+        translations = [translation_node.text]
+
+    for translation in translations:
+        if translation is None:
+            continue
+        errors = []
+        valid = check_format_specifiers(source, translation, errors, numerus) and not contains_bitcoin_addr(translation, errors)
+
+        for error in errors:
+            print('%s: %s' % (filename, error))
+
+        if not valid: # set type to unfinished and clear string if invalid
+            translation_node.clear()
+            translation_node.set('type', 'unfinished')
+
+    # Remove location tags
+    for location in message.findall('location'):
+        message.remove(location)
+
+    # Remove entire message if it is an unfinished translation
+    if translation_node.get('type') == 'unfinished':
+        return False
+
+    return True
+
 def postprocess_translations(reduce_diff_hacks=False):
     print('Checking and postprocessing...')
 
@@ -167,35 +200,8 @@ def postprocess_translations(reduce_diff_hacks=False):
         root = tree.getroot()
         for context in root.findall('context'):
             for message in context.findall('message'):
-                numerus = message.get('numerus') == 'yes'
-                source = message.find('source').text
-                translation_node = message.find('translation')
-                # pick all numerusforms
-                if numerus:
-                    translations = [i.text for i in translation_node.findall('numerusform')]
-                else:
-                    translations = [translation_node.text]
-
-                for translation in translations:
-                    if translation is None:
-                        continue
-                    errors = []
-                    valid = check_format_specifiers(source, translation, errors, numerus) and not contains_bitcoin_addr(translation, errors)
-
-                    for error in errors:
-                        print('%s: %s' % (filename, error))
-
-                    if not valid: # set type to unfinished and clear string if invalid
-                        translation_node.clear()
-                        translation_node.set('type', 'unfinished')
-
-                # Remove location tags
-                for location in message.findall('location'):
-                    message.remove(location)
-
-                # Remove entire message if it is an unfinished translation
-                if translation_node.get('type') == 'unfinished':
-                    context.remove(message)
+                if not postprocess_message(filename, message):
+                    context.remove(message);
 
         # check if document is (virtually) empty, and remove it if so
         num_messages = 0
