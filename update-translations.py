@@ -28,8 +28,8 @@ TX = 'tx'
 SOURCE_LANG = 'bitcoin_en.ts'
 # Directory with locale files
 LOCALE_DIR = 'src/qt/locale'
-# Minimum number of messages for translation to be considered at all
-MIN_NUM_MESSAGES = 10
+# Minimum number of non-numerus messages for translation to be considered at all
+MIN_NUM_NONNUMERUS_MESSAGES = 10
 # Regexp to check for Bitcoin addresses
 ADDRESS_REGEXP = re.compile('([13]|bc1)[a-zA-Z0-9]{30,}')
 # Path to git
@@ -208,12 +208,14 @@ def postprocess_translations(reduce_diff_hacks=False):
                 root.remove(context)
 
         # check if document is (virtually) empty, and remove it if so
-        num_messages = 0
+        num_nonnumerus_messages = 0
         for context in root.findall('context'):
             for message in context.findall('message'):
-                num_messages += 1
-        if num_messages < MIN_NUM_MESSAGES:
-            print('Removing %s, as it contains only %i messages' % (filepath, num_messages))
+                if message.get('numerus') != 'yes':
+                    num_nonnumerus_messages += 1
+
+        if num_nonnumerus_messages < MIN_NUM_NONNUMERUS_MESSAGES:
+            print('Removing %s, as it contains only %i non-numerus messages' % (filepath, num_nonnumerus_messages))
             continue
 
         # write fixed-up tree
