@@ -144,9 +144,12 @@ def contains_bitcoin_addr(text, errors):
     return False
 
 def postprocess_message(filename, message):
+    translation_node = message.find('translation')
+    if translation_node.get('type') == 'unfinished':
+        return False
+
     numerus = message.get('numerus') == 'yes'
     source = message.find('source').text
-    translation_node = message.find('translation')
     # pick all numerusforms
     if numerus:
         translations = [i.text for i in translation_node.findall('numerusform')]
@@ -162,17 +165,12 @@ def postprocess_message(filename, message):
         for error in errors:
             print('%s: %s' % (filename, error))
 
-        if not valid: # set type to unfinished and clear string if invalid
-            translation_node.clear()
-            translation_node.set('type', 'unfinished')
+        if not valid:
+            return False
 
     # Remove location tags
     for location in message.findall('location'):
         message.remove(location)
-
-    # Remove entire message if it is an unfinished translation
-    if translation_node.get('type') == 'unfinished':
-        return False
 
     return True
 
