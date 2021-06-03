@@ -154,6 +154,9 @@ def postprocess_message(filename, message):
     if numerus:
         translations = [i.text for i in translation_node.findall('numerusform')]
     else:
+        if translation_node.text is None or translation_node.text == source:
+            return False
+
         translations = [translation_node.text]
 
     for translation in translations:
