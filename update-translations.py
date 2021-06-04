@@ -34,6 +34,8 @@ MIN_NUM_NONNUMERUS_MESSAGES = 10
 ADDRESS_REGEXP = re.compile('([13]|bc1)[a-zA-Z0-9]{30,}')
 # Path to git
 GIT = os.getenv("GIT", "git")
+# Original content file suffix
+ORIGINAL_SUFFIX = '.orig'
 
 def check_at_repository_root():
     if not os.path.exists('.git'):
@@ -49,8 +51,8 @@ def remove_current_translations():
     '''
     for (_,name) in all_ts_files():
         os.remove(name)
-    for (_,name) in all_ts_files('.orig'):
-        os.remove(name + '.orig')
+    for (_,name) in all_ts_files(suffix=ORIGINAL_SUFFIX):
+        os.remove(name + ORIGINAL_SUFFIX)
 
 def fetch_all_translations():
     if subprocess.call([TX, 'pull', '-f', '-a']):
@@ -186,12 +188,12 @@ def postprocess_translations(reduce_diff_hacks=False):
         ET._escape_cdata = escape_cdata
 
     for (filename,filepath) in all_ts_files():
-        os.rename(filepath, filepath+'.orig')
+        os.rename(filepath, filepath + ORIGINAL_SUFFIX)
 
-    for (filename,filepath) in all_ts_files('.orig'):
+    for (filename,filepath) in all_ts_files(suffix=ORIGINAL_SUFFIX):
         # pre-fixups to cope with transifex output
         parser = ET.XMLParser(encoding='utf-8') # need to override encoding because 'utf8' is not understood only 'utf-8'
-        with open(filepath + '.orig', 'rb') as f:
+        with open(filepath + ORIGINAL_SUFFIX, 'rb') as f:
             data = f.read()
         # remove control characters; this must be done over the entire file otherwise the XML parser will fail
         data = remove_invalid_characters(data)
