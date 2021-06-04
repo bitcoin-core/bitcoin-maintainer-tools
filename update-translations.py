@@ -22,6 +22,8 @@ import os
 import io
 import xml.etree.ElementTree as ET
 
+# Name of Qt lconvert tool
+LCONVERT = 'lconvert'
 # Name of transifex tool
 TX = 'tx'
 # Name of source language file without extension
@@ -62,6 +64,18 @@ def fetch_all_translations():
     if subprocess.call([TX, 'pull', '-f', '-a']):
         print('Error while fetching translations', file=sys.stderr)
         sys.exit(1)
+
+def convert_xlf_to_ts():
+    xliff_files =  all_ts_files(file_format=FORMAT_XLIFF)
+    if not xliff_files:
+        return False
+
+    for (_, name) in xliff_files:
+        outname = name.replace(FORMAT_XLIFF, FORMAT_TS)
+        print('Converting %s to %s...' % (name, outname))
+        subprocess.check_call([LCONVERT, '-o', outname, '-i', name])
+        os.remove(name)
+    return True
 
 def find_format_specifiers(s):
     '''Find all format specifiers in a string.'''
@@ -149,9 +163,9 @@ def contains_bitcoin_addr(text, errors):
         return True
     return False
 
-def postprocess_message(filename, message):
+def postprocess_message(filename, message, xliff_compatible_mode):
     translation_node = message.find('translation')
-    if translation_node.get('type') == 'unfinished':
+    if not xliff_compatible_mode and translation_node.get('type') == 'unfinished':
         return False
 
     numerus = message.get('numerus') == 'yes'
@@ -183,7 +197,7 @@ def postprocess_message(filename, message):
 
     return True
 
-def postprocess_translations(reduce_diff_hacks=False):
+def postprocess_translations(xliff_compatible_mode, reduce_diff_hacks=False):
     print('Checking and postprocessing...')
 
     if reduce_diff_hacks:
@@ -207,7 +221,7 @@ def postprocess_translations(reduce_diff_hacks=False):
         root = tree.getroot()
         for context in root.findall('context'):
             for message in context.findall('message'):
-                if not postprocess_message(filename, message):
+                if not postprocess_message(filename, message, xliff_compatible_mode):
                     context.remove(message);
 
             if not context.findall('message'):
@@ -270,7 +284,8 @@ if __name__ == '__main__':
     check_at_repository_root()
     remove_current_translations()
     fetch_all_translations()
-    postprocess_translations()
+    xliff_compatible_mode = convert_xlf_to_ts()
+    postprocess_translations(xliff_compatible_mode)
     update_git()
     update_build_systems()
 
