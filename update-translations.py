@@ -24,8 +24,8 @@ import xml.etree.ElementTree as ET
 
 # Name of transifex tool
 TX = 'tx'
-# Name of source language file
-SOURCE_LANG = 'bitcoin_en.ts'
+# Name of source language file without extension
+SOURCE_LANG = 'bitcoin_en'
 # Directory with locale files
 LOCALE_DIR = 'src/qt/locale'
 # Minimum number of non-numerus messages for translation to be considered at all
@@ -36,6 +36,10 @@ ADDRESS_REGEXP = re.compile('([13]|bc1)[a-zA-Z0-9]{30,}')
 GIT = os.getenv("GIT", "git")
 # Original content file suffix
 ORIGINAL_SUFFIX = '.orig'
+# Native Qt translation file (TS) format
+FORMAT_TS = '.ts'
+# XLIFF file format
+FORMAT_XLIFF = '.xlf'
 
 def check_at_repository_root():
     if not os.path.exists('.git'):
@@ -115,10 +119,10 @@ def check_format_specifiers(source, translation, errors, numerus):
             return False
     return True
 
-def all_ts_files(suffix='', include_source=False):
+def all_ts_files(file_format=FORMAT_TS, suffix='', include_source=False):
     for filename in os.listdir(LOCALE_DIR):
         # process only language files, and do not process source language
-        if not filename.endswith('.ts'+suffix) or (not include_source and filename == SOURCE_LANG+suffix):
+        if not filename.endswith(file_format + suffix) or (not include_source and filename == SOURCE_LANG + file_format + suffix):
             continue
         if suffix: # remove provided suffix
             filename = filename[0:-len(suffix)]
