@@ -9,7 +9,6 @@
 # different architectures or even different OS versions, which come with
 # different library packages, but this is left as a future improvement.
 
-export BITCOIN_CORE_COMMIT="80486e7e2d8c360839cffc5a0c597b5c745433a7"
 export FUZZ_INPUTS_DIR="fuzz_seed_corpus"
 
 set -e
@@ -35,7 +34,6 @@ git clone https://github.com/bitcoin-core/qa-assets.git
 git clone https://github.com/bitcoin/bitcoin.git
 (
   cd bitcoin
-  git checkout "${BITCOIN_CORE_COMMIT}"
 
   ./autogen.sh
 
