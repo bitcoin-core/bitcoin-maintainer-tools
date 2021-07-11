@@ -22,9 +22,9 @@ def ask_prompt(text):
     print("",file=sys.stderr)
     return reply
 
-merge_re = re.compile('^Merge (#[0-9]+)')
+merge_re = re.compile('^Merge (\w+(?:-\w+)*/\w+(?:-\w+)*#[0-9]+)')
 if len(sys.argv) > 1:
-    pulls = ['#'+x.strip() for x in sys.argv[1:]]
+    pulls = [x.strip() for x in sys.argv[1:]]
 else:
     with open('to_backport.txt','r') as f:
         pulls = [x.strip() for x in f if x.strip()]

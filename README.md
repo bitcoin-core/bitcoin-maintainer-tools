@@ -118,7 +118,13 @@ backport
 --------
 
 Script to backport pull requests in order of merge, to minimize number of conflicts.
-Pull ids are listed in `to_backport.txt` or given on the command line.
+Pull ids are listed in `to_backport.txt` or given on the command line, and they must be prefixed
+with the repository name, e.g.:
+
+```bash
+../bitcoin-maintainer-tools/backport.py bitcoin/bitcoin#21907 bitcoin-core/gui#277 bitcoin-core/gui#365
+
+```
 
 Requires `pip3 install gitpython` or similar.
 
