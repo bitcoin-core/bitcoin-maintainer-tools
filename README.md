@@ -240,23 +240,6 @@ are read-only once they are written.
 Warning: Hardlinking only works within a filesystem, and may not work for all
 filesystems.
 
-transifex-migrate-resource
---------------------------
-
-Copy a transifex resource to another.
-
-Run the script providing the slug of the project and the slug of the old and new resource.
-The new resource should already have been created, but be otherwise empty. It should
-be based on the exact same source translation.
- 
-Example:
-Old resource slug: 'old'
-New resource slug: 'new'
- 
-python transifex-migrate-resource.py project old new
- 
-After running the command you will be asked for your Transifex username and password.
-
 list-pulls
 ----------
 
