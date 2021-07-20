@@ -15,16 +15,16 @@ import treehash512
 GIT = os.getenv("GIT", "git")
 
 # Full version specification
-VersionSpec = collections.namedtuple('VersionSpec', ['major', 'minor', 'build', 'rc'])
+VersionSpec = collections.namedtuple('VersionSpec', ['major', 'minor', 'revision', 'build', 'rc'])
 
 def version_name(spec):
     '''
     Short version name for comparison.
     '''
     if not spec.build:
-        version = f"{spec.major}.{spec.minor}"
+        version = f"{spec.major}.{spec.minor}.{spec.revision}"
     else:
-        version = f"{spec.major}.{spec.minor}.{spec.build}"
+        version = f"{spec.major}.{spec.minor}.{spec.revision}.{spec.build}"
     if spec.rc:
         version += f"rc{spec.rc}"
     return version
@@ -33,12 +33,12 @@ def parse_tag(tag):
     '''
     Parse a version tag. Valid version tags are
 
-    - v1.2
     - v1.2.3
-    - v1.2rc3
+    - v1.2.3.4
     - v1.2.3rc4
+    - v1.2.3.4rc5
     '''
-    m = re.match("^v([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:rc([0-9])+)?$", tag)
+    m = re.match("^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:rc([0-9])+)?$", tag)
 
     if m is None:
         print(f"Invalid tag {tag}", file=sys.stderr)
@@ -46,8 +46,9 @@ def parse_tag(tag):
 
     major = m.group(1)
     minor = m.group(2)
-    build = m.group(3)
-    rc = m.group(4)
+    revision = m.group(3)
+    build = m.group(4)
+    rc = m.group(5)
 
     # Check for x.y.z.0 or x.y.zrc0
     if build == '0' or rc == '0':
@@ -60,12 +61,12 @@ def parse_tag(tag):
     if rc is None:
         rc = 0
 
-    return VersionSpec(int(major), int(minor), int(build), int(rc))
+    return VersionSpec(int(major), int(minor), int(revision), int(build), int(rc))
 
 def check_configure_ac(spec):
     '''
     Parse configure.ac and return
-    (major, minor, build, rc)
+    (major, minor, revision, build, rc)
     '''
     info = {}
     filename = 'configure.ac'
@@ -82,6 +83,7 @@ def check_configure_ac(spec):
     cfg_spec = VersionSpec(
             int(info['MAJOR']),
             int(info['MINOR']),
+            int(info['REVISION']),
             int(info['BUILD']),
             int(info['RC']),
         )
@@ -104,23 +106,25 @@ def check_msvc_config_h(spec):
         sys.exit(1)
 
     package_name = info['PACKAGE_NAME'][1:-1]
-    if info['PACKAGE_STRING'] != f'"{package_name} {spec.major}.{spec.minor}.{spec.build}"':
+    if info['PACKAGE_STRING'] != f'"{package_name} {spec.major}.{spec.minor}.{spec.revision}"':
         print(f'PACKAGE_STRING is not set correctly for msvc')
         sys.exit(1)
 
-    if info['PACKAGE_VERSION'] != f'"{spec.major}.{spec.minor}.{spec.build}"':
+    if info['PACKAGE_VERSION'] != f'"{spec.major}.{spec.minor}.{spec.revision}"':
         print(f'PACKAGE_VERSION is not set correctly for msvc')
         sys.exit(1)
 
     msvc_spec = VersionSpec(
             int(info['CLIENT_VERSION_MAJOR']),
             int(info['CLIENT_VERSION_MINOR']),
+            int(info['CLIENT_VERSION_REVISION']),
             int(info['CLIENT_VERSION_BUILD']),
             None, # RC is not specified here
         )
 
     if (msvc_spec.major != spec.major or
         msvc_spec.minor != spec.minor or
+        msvc_spec.revision != spec.revision or
         msvc_spec.build != spec.build):
         print(f"{filename}: Version from tag {version_name(spec)} doesn't match specified version {version_name(msvc_spec)}", file=sys.stderr)
         sys.exit(1)
@@ -152,9 +156,9 @@ def main():
 
     # Generate base message
     if not spec.build:
-        version = f"{spec.major}.{spec.minor}"
+        version = f"{spec.major}.{spec.minor}.{spec.revision}"
     else:
-        version = f"{spec.major}.{spec.minor}.{spec.build}"
+        version = f"{spec.major}.{spec.minor}.{spec.revision}.{spec.build}"
     if spec.rc:
         version += f" release candidate {spec.rc}"
     else:
