@@ -2,8 +2,8 @@ diff --git a/src/bench/bench.h b/src/bench/bench.h
 index 22f06d8cb..661a31911 100644
 --- a/src/bench/bench.h
 +++ b/src/bench/bench.h
-@@ -58,6 +58,6 @@ public:
- }
+@@ -62,6 +62,6 @@ public:
+ 
  // BENCHMARK(foo) expands to:  benchmark::BenchRunner bench_11foo("foo", foo);
  #define BENCHMARK(n) \
 -    benchmark::BenchRunner PASTE2(bench_, PASTE2(__LINE__, n))(STRINGIZE(n), n);
