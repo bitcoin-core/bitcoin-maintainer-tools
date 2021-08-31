@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
 Script to parse git commit list, extract github issues to create a changelog in
-text and json format.
+text and JSON format.
 
 Run this in the root directory of the repository.
 
@@ -20,7 +20,8 @@ The output of this script is a first draft based on rough heuristics, and
 likely needs to be extensively manually edited before ending up in the release
 notes.
 '''
-# W.J. van der Laan 2017-2019 (license: MIT)
+# W.J. van der Laan 2017-2021
+# SPDX-License-Identifier: MIT
 import subprocess
 import re
 import json
@@ -31,6 +32,7 @@ from collections import namedtuple, defaultdict
 # == Global environment ==
 GIT = os.getenv('GIT', 'git')
 GHMETA = os.getenv('GHMETA', '../bitcoin-gh-meta')
+DEFAULT_REPO = os.getenv('DEFAULT_REPO', 'bitcoin/bitcoin')
 
 # == Label to category mapping ==
 # See: https://github.com/bitcoin/bitcoin/labels
@@ -130,6 +132,25 @@ PREFIXES = [
     ('wallet', 'Wallet', True),
 ]
 
+# Per-repository information
+REPO_INFO = {
+    'bitcoin/bitcoin': {
+        'label_mapping': LABEL_MAPPING,
+        'prefixes': PREFIXES,
+        'default_category': UNCATEGORIZED,
+        'ghmeta': GHMETA,
+    },
+    # For now, GUI repository pulls are automatically categorized into the GUI category.
+    'bitcoin-core/gui': {
+        'label_mapping': (),
+        'prefixes': [],
+        'default_category': 'GUI',
+        'ghmeta': None,
+    },
+}
+
+# == Utilities ==
+
 def remove_last_if_empty(l):
     '''Remove empty last member of list'''
     if l[-1]==b'' or l[-1]=='':
@@ -137,6 +158,65 @@ def remove_last_if_empty(l):
     else:
         return l
 
+# Valid chars in github names
+VALIDNAMECHARS = '[0-9a-zA-Z\-_]'
+# For parsing owner/repo#id
+FQID_RE = re.compile('^(' + VALIDNAMECHARS + '+)/(' + VALIDNAMECHARS + '+)#([0-9]+)$')
+# For parsing non-qualified #id
+PR_RE = re.compile('^#?([0-9]+)$')
+
+class FQId:
+    '''Fully qualified PR id.'''
+    def __init__(self, owner: str, repo: str, pr: int):
+        self.owner = owner
+        self.repo = repo
+        self.pr = pr
+
+    @property
+    def _key(self):
+        return (self.owner, self.repo, self.pr)
+
+    def __eq__(self, o):
+        return self._key == o._key
+
+    def __lt__(self, o):
+        return self._key < o._key
+
+    def __hash__(self):
+        return hash(self._key)
+
+    def __str__(self):
+        return f'{self.owner}/{self.repo}#{self.pr}'
+
+    def __repr__(self):
+        return f'FQId({repr(self.owner)}, {repr(self.repo)}, {repr(self.pr)})'
+
+    @classmethod
+    def parse(cls, pull, default_repo):
+        '''Return FQId from 'owner/repo#id' or '#id' or 'id' string.'''
+        m = FQID_RE.match(pull)
+        if m:
+            return cls(m.group(1), m.group(2), int(m.group(3)))
+        m = PR_RE.match(pull)
+        if m:
+            (owner, repo) = default_repo.split('/')
+            return cls(owner, repo, int(m.group(1)))
+        raise ValueError(f'Cannot parse {pull} as PR specification.')
+
+def tests():
+    '''Quick internal sanity tests.'''
+    assert(FQId.parse('bitcoin/bitcoin#1234', 'bitcoin/bitcoin') == FQId('bitcoin', 'bitcoin', 1234))
+    assert(FQId.parse('bitcoin-core/gui#1235', 'bitcoin/bitcoin') == FQId('bitcoin-core', 'gui', 1235))
+    assert(FQId.parse('#1236', 'bitcoin/bitcoin') == FQId('bitcoin', 'bitcoin', 1236))
+    assert(FQId.parse('1237', 'bitcoin/bitcoin') == FQId('bitcoin', 'bitcoin', 1237))
+    assert(str(FQId('bitcoin', 'bitcoin', 1239)) == 'bitcoin/bitcoin#1239')
+    assert(FQId('bitcoin', 'bitcoin', 1239) < FQId('bitcoin', 'bitcoin', 1240))
+    assert(not (FQId('bitcoin', 'bitcoin', 1240) < FQId('bitcoin', 'bitcoin', 1239)))
+    assert(FQId('bitcoin', 'bitcoin', 1240) < FQId('bitcoin-core', 'gui', 1239))
+    assert(not (FQId('bitcoin-core', 'gui', 1239) < FQId('bitcoin', 'bitcoin', 1240)))
+
+# == Main program ==
+tests()
 ref_from = sys.argv[1] # 'v0.10.0rc1'
 ref_to = sys.argv[2] # 'master'
 
@@ -148,8 +228,8 @@ if len(sys.argv) >= 4:
     try:
         with open(exclude_file, 'r') as f:
             d = json.load(f)
-            exclude_pulls = set(p['id'] for p in d['pulls'])
-        print('Excluding ', exclude_pulls)
+            exclude_pulls = set(FQId.parse(str(p['id']), DEFAULT_REPO) for p in d['pulls'])
+        print(f'Excluding {", ".join(str(p) for p in exclude_pulls)}')
         print()
     except IOError as e:
         print(f'Unable to read exclude file {exclude_file}', file=sys.stderr)
@@ -187,12 +267,13 @@ def parse_commit_message(msg):
     '''
     retval = CommitMetaData()
     for line in msg.splitlines():
-        m = re.match('Github-Pull: #?(\d+)', line, re.I)
-        if m:
-            retval.pull = int(m.group(1))
-        m = re.match('Rebased-From: (.*)', line, re.I)
-        if m:
-            retval.rebased_from = m.group(1).strip().split()
+        if line.startswith('Github-Pull:'):
+            param = line[12:].strip()
+            if param.startswith('#'): # compensate for incorrect #bitcoin-core/gui#148
+                param = param[1:]
+            retval.pull = FQId.parse(param, DEFAULT_REPO)
+        if line.startswith('Rebased-From:'):
+            retval.rebased_from = line[13:].strip().split()
     if retval.pull is not None:
         return retval
     else:
@@ -202,12 +283,12 @@ def parse_commit_message(msg):
 pulls = {}
 PullData = namedtuple('PullData', ['id', 'merge', 'commits', 'index'])
 orphans = set(commits)
-pullreq_re = re.compile('#([0-9]+)')
+MERGE_RE = re.compile('Merge (.*?):')
 for c in commit_data.values():
     # is merge commit
     if len(c.parents)>1:
         assert(len(c.parents)==2)
-        match = pullreq_re.search(c.title)
+        match = MERGE_RE.match(c.title)
         if match: # merges a pull request
             if c.sha in orphans:
                 orphans.remove(c.sha)
@@ -215,7 +296,7 @@ for c in commit_data.values():
             sub_commits = subprocess.check_output([GIT, 'rev-list', c.parents[0]+'..'+c.parents[1]])
             sub_commits = sub_commits.decode()
             sub_commits = set(sub_commits.rstrip().splitlines())
-            pull = int(match.group(1))
+            pull = FQId.parse(match.group(1), DEFAULT_REPO)
 
             # remove commits that are not in the global list
             sub_commits = sub_commits.intersection(commits)
@@ -239,12 +320,14 @@ for c in commit_data.values():
                         if md:
                             sub_pulls[md.pull].append(cid)
 
-                    if not sub_pulls and 'backport' in c.message.lower():
-                        # TODO could check pull label instead, but we don't know that here yet
-                        print('#%i: Merge commit message contains \'backport\' but there are no sub-pulls' % (pull))
+                    if not sub_pulls and 'backport' in c.title.lower():
+                        # just information for manual checking
+                        print(f'{pull}: Merge PR title {repr(c.title)} contains \'backport\' but there are no sub-pulls')
 
                     for (sub_pull, sub_pull_commits) in sub_pulls.items():
                         pulls[sub_pull] = PullData(sub_pull, sub_pull_commits[0], sub_pull_commits, index)
+        else:
+            print(f'{c.sha}: Merge commit does not merge a PR: {c.title}')
 
 # Extract remaining pull numbers from orphans, if they're backports
 for o in set(orphans):
@@ -261,26 +344,26 @@ pulls_order.sort(key=lambda p:p.index)
 pulls_order = [p.id for p in pulls_order]
 # pulls_order = sorted(pulls.keys())
 
-def guess_category_from_labels(labels):
+def guess_category_from_labels(repo_info, labels):
     '''
     Guess category for a PR from github labels.
     '''
     labels = [l.lower() for l in labels]
-    for (label_list, category) in LABEL_MAPPING:
+    for (label_list, category) in repo_info['label_mapping']:
         for l in labels:
             if l in label_list:
                 return category
-    return UNCATEGORIZED
+    return repo_info['default_category']
 
-def get_category(labels, message):
+def get_category(repo_info, labels, message):
     '''
-    Guess category for a PR from labels and message.
+    Guess category for a PR from repository, labels and message prefixes.
     Strip category from message.
     '''
-    category = guess_category_from_labels(labels)
+    category = guess_category_from_labels(repo_info, labels)
     message = message.strip()
 
-    for (prefix, p_category, do_strip) in PREFIXES:
+    for (prefix, p_category, do_strip) in repo_info['prefixes']:
         for variant in [('[' + prefix + ']:'), ('[' + prefix + ']'), (prefix + ':')]:
             if message.lower().startswith(variant):
                 category = p_category
@@ -294,19 +377,25 @@ pull_meta = {}
 pull_labels = {}
 per_category = defaultdict(list)
 for pull in pulls_order:
-    filename = f'{GHMETA}/issues/{pull//100}xx/{pull}.json'
-    try:
-        with open(filename, 'r') as f:
-            data0 = json.load(f)
-    except IOError as e:
-        data0 = None
+    repo_info = REPO_INFO[f'{pull.owner}/{pull.repo}']
 
-    filename = f'{GHMETA}/issues/{pull//100}xx/{pull}-PR.json'
-    try:
-        with open(filename, 'r') as f:
-            data1 = json.load(f)
-    except IOError as e:
-        data1 = {'title': '{Not found}', 'user': {'login':'unknown'}}
+    # Find github metadata for PR, if available
+    data0 = None
+    data1 = {'title': '{Not found}', 'user': {'login':'unknown'}}
+    if repo_info['ghmeta'] is not None:
+        filename = f'{repo_info["ghmeta"]}/issues/{pull.pr//100}xx/{pull.pr}.json'
+        try:
+            with open(filename, 'r') as f:
+                data0 = json.load(f)
+        except IOError as e:
+            pass
+
+        filename = f'{repo_info["ghmeta"]}/issues/{pull.pr//100}xx/{pull.pr}-PR.json'
+        try:
+            with open(filename, 'r') as f:
+                data1 = json.load(f)
+        except IOError as e:
+            pass
 
     message = data1['title']
     author = data1['user']['login']
@@ -325,7 +414,7 @@ for pull in pulls_order:
         message = message[0:-1]
 
     # determine category and new message from message
-    category, message = get_category(labels, message)
+    category, message = get_category(repo_info, labels, message)
     data1['title'] = message
 
     per_category[category].append((pull, message, author))
@@ -337,13 +426,13 @@ for _,category in LABEL_MAPPING:
         continue
     print('### %s' % category)
     for dd in per_category[category]:
-        print('- #%i %s (%s)' % dd)
+        print(f'- {dd[0]} {dd[1]} ({dd[2]})')
     print()
 
 if per_category[UNCATEGORIZED]:
     print('### %s' % UNCATEGORIZED)
     for dd in per_category[UNCATEGORIZED]:
-        print('- #%i %s (%s) (labels: %s)' % (dd+(pull_labels[dd[0]],)))
+        print(f'- {dd[0]} {dd[1]} ({dd[2]}) (labels: {pull_labels[dd[0]]})')
     print()
 
 print('### Orphan commits')
@@ -360,7 +449,7 @@ pulls_d = []
 for pull in sorted(pulls.keys()):
     pd = pulls[pull]
     pulls_d.append(
-            {'id': pd.id,
+            {'id': str(pd.id),
             'merge': pd.merge,
             'commits': list(pd.commits),
             'meta': pull_meta[pd.id]})
