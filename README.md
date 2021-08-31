@@ -292,15 +292,15 @@ pip3 install --user pyyaml gpg
 (or install the distribution package, in Debian/Ubuntu this is `python3-yaml` and `python3-gpg`)
 
 The `gpg` module requires the [gpgme](https://www.gnupg.org/software/gpgme/index.html) library
-which is usually present on Linux, and can be installed with `brew install gpgme` on macOS. 
+which is usually present on Linux, and can be installed with `brew install gpgme` on macOS.
 
-Example usage: `./gitian-verify.py -r 0.21.0rc5 -d ../gitian.sigs -k ../bitcoin/contrib/gitian-keys/keys.txt`
+Example usage: `./gitian-verify.py -r 0.21.0rc5 -d ../gitian.sigs -k ../bitcoin/contrib/builder-keys/keys.txt`
 
 Where
 
 - `-r 0.21.0rc5` specifies the release to verify signatures for.
 - `-d ../gitian.sigs` specifies the directory where the repository with signatures, [gitian.sigs](https://github.com/bitcoin-core/gitian.sigs/) is checked out.
-- `../bitcoin/contrib/gitian-keys/keys.txt` is the path to `keys.txt` file inside the main repository that specifies the valid keys and what signers they belong to.
+- `../bitcoin/contrib/builder-keys/keys.txt` is the path to `keys.txt` file inside the main repository that specifies the valid keys and what signers they belong to.
 
 Example output:
 ```
