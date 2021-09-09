@@ -252,6 +252,7 @@ def parse_arguments():
         githubmerge.pushmirrors (default: none, comma-separated list of mirrors to push merges of the master development branch to, e.g. `git@gitlab.com:<owner>/<repo>.git,git@github.com:<owner>/<repo>.git`),
         user.signingkey (mandatory),
         user.ghtoken (default: none).
+        githubmerge.merge-author-email (default: Email from git config),
         githubmerge.host (default: git@github.com),
         githubmerge.branch (no default),
         githubmerge.testcmd (default: none).
@@ -271,6 +272,7 @@ def main():
     repo = git_config_get('githubmerge.repository')
     host = git_config_get('githubmerge.host','git@github.com')
     opt_branch = git_config_get('githubmerge.branch',None)
+    merge_author_email = git_config_get('githubmerge.merge-author-email',None)
     testcmd = git_config_get('githubmerge.testcmd')
     ghtoken = git_config_get('user.ghtoken')
     signingkey = git_config_get('user.signingkey')
@@ -445,6 +447,8 @@ def main():
             if reply == 's':
                 try:
                     config = ['-c', 'user.name=merge-script']
+                    if merge_author_email:
+                        config += ['-c', f'user.email={merge_author_email}']
                     subprocess.check_call([GIT] + config + ['commit','-q','--gpg-sign','--amend','--no-edit','--reset-author'])
                     break
                 except subprocess.CalledProcessError:
