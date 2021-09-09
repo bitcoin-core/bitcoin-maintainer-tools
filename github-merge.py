@@ -444,7 +444,8 @@ def main():
             reply = ask_prompt("Type 's' to sign off on the above merge, or 'x' to reject and exit.").lower()
             if reply == 's':
                 try:
-                    subprocess.check_call([GIT,'commit','-q','--gpg-sign','--amend','--no-edit'])
+                    config = ['-c', 'user.name=merge-script']
+                    subprocess.check_call([GIT] + config + ['commit','-q','--gpg-sign','--amend','--no-edit','--reset-author'])
                     break
                 except subprocess.CalledProcessError:
                     print("Error while signing, asking again.",file=stderr)
