@@ -81,6 +81,8 @@ def sanitize_ghdata(rec):
     '''
     if 'title' in rec: # only for PRs
         rec['title'] = sanitize(rec['title'], newlines=False)
+    if rec['body'] is None:
+        rec['body'] = ''
     rec['body'] = sanitize(rec['body'], newlines=True)
 
     # "Github username may only contain alphanumeric characters or hyphens'.
