@@ -10,6 +10,13 @@ SEEDS_MAINNET=["seed.bitcoin.sipa.be","dnsseed.bluematt.me","dnsseed.bitcoin.das
         "seed.bitcoin.sprovoost.nl", "dnsseed.emzy.de","seed.bitcoin.wiz.biz"]
 SEEDS_TESTNET=["testnet-seed.bitcoin.jonasschnelli.ch","seed.tbtc.petertodd.org",
         "testnet-seed.bluematt.me","seed.testnet.bitcoin.sprovoost.nl"]
+SEEDS_SIGNET=["seed.signet.bitcoin.sprovoost.nl"]
+
+SEEDS_PER_NETWORK={
+    'mainnet': SEEDS_MAINNET,
+    'testnet': SEEDS_TESTNET,
+    'signet': SEEDS_SIGNET,
+}
 
 def check_seed(x):
     p = subprocess.run(["host",x], capture_output=True, universal_newlines=True)
@@ -27,13 +34,10 @@ def check_seed(x):
         print(f"\x1b[91mFAIL\x1b[0m {x}")
 
 if __name__ == '__main__':
-    print("\x1b[90m* \x1b[97mMainnet\x1b[0m")
+    for (network, seeds) in SEEDS_PER_NETWORK.items():
+        print(f"\x1b[90m* \x1b[97m{network}\x1b[0m")
 
-    for hostname in SEEDS_MAINNET:
-        check_seed(hostname)
+        for hostname in seeds:
+            check_seed(hostname)
 
-    print()
-    print("\x1b[90m* \x1b[97mTestnet\x1b[0m")
-
-    for hostname in SEEDS_TESTNET:
-        check_seed(hostname)
+        print()
