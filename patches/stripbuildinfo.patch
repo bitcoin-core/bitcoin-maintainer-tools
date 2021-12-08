@@ -1,8 +1,8 @@
 diff --git a/src/bench/bench.h b/src/bench/bench.h
-index 22f06d8cb..661a31911 100644
+index b0e4006ee3..738b452400 100644
 --- a/src/bench/bench.h
 +++ b/src/bench/bench.h
-@@ -62,6 +62,6 @@ public:
+@@ -63,6 +63,6 @@ public:
  
  // BENCHMARK(foo) expands to:  benchmark::BenchRunner bench_11foo("foo", foo);
  #define BENCHMARK(n) \
@@ -11,20 +11,20 @@ index 22f06d8cb..661a31911 100644
  
  #endif // BITCOIN_BENCH_BENCH_H
 diff --git a/src/clientversion.cpp b/src/clientversion.cpp
-index 29c38e2d3..46a042702 100644
+index f97e4097e8..e36c5c185f 100644
 --- a/src/clientversion.cpp
 +++ b/src/clientversion.cpp
-@@ -40,7 +40,7 @@ const std::string CLIENT_NAME("Satoshi");
-     #endif
- #endif
+@@ -49,7 +49,7 @@ static std::string FormatVersion(int nVersion)
  
--const std::string CLIENT_BUILD(BUILD_DESC BUILD_SUFFIX);
-+const std::string CLIENT_BUILD("");
- 
- static std::string FormatVersion(int nVersion)
+ std::string FormatFullVersion()
  {
+-    static const std::string CLIENT_BUILD(BUILD_DESC BUILD_SUFFIX);
++    static const std::string CLIENT_BUILD("");
+     return CLIENT_BUILD;
+ }
+ 
 diff --git a/src/compat/assumptions.h b/src/compat/assumptions.h
-index 5f50cde3f..5feefc79b 100644
+index 7a254c3b67..64cc15ea9a 100644
 --- a/src/compat/assumptions.h
 +++ b/src/compat/assumptions.h
 @@ -13,9 +13,6 @@
@@ -38,10 +38,10 @@ index 5f50cde3f..5feefc79b 100644
  // Assumption: We assume a C++17 (ISO/IEC 14882:2017) compiler (minimum requirement).
  // Example(s): We assume the presence of C++17 features everywhere :-)
 diff --git a/src/logging.h b/src/logging.h
-index 436f0cd12..bee77fd93 100644
+index f46104364c..8749230866 100644
 --- a/src/logging.h
 +++ b/src/logging.h
-@@ -180,7 +180,7 @@ static inline void LogPrintf_(const std::string& logging_function, const std::st
+@@ -184,7 +184,7 @@ static inline void LogPrintf_(const std::string& logging_function, const std::st
      }
  }
  
@@ -51,7 +51,7 @@ index 436f0cd12..bee77fd93 100644
  // Use a macro instead of a function for conditional logging to prevent
  // evaluating arguments when logging for the category is not enabled.
 diff --git a/src/rest.cpp b/src/rest.cpp
-index d41f374c4..b2c89d838 100644
+index 3746fd752a..6c5be23670 100644
 --- a/src/rest.cpp
 +++ b/src/rest.cpp
 @@ -84,7 +84,7 @@ static NodeContext* GetNodeContext(const std::any& context, HTTPRequest* req)
@@ -63,11 +63,20 @@ index d41f374c4..b2c89d838 100644
          return nullptr;
      }
      return node_context;
+@@ -122,7 +122,7 @@ static ChainstateManager* GetChainman(const std::any& context, HTTPRequest* req)
+                 strprintf("%s:%d (%s)\n"
+                           "Internal bug detected: Chainman disabled or instance not found!\n"
+                           "You may report this issue here: %s\n",
+-                          __FILE__, __LINE__, __func__, PACKAGE_BUGREPORT));
++                          __FILE__, 0, __func__, PACKAGE_BUGREPORT));
+         return nullptr;
+     }
+     return node_context->chainman.get();
 diff --git a/src/sync.h b/src/sync.h
-index 53213c208..fd127d319 100644
+index 6ba63d5e4d..e41e701230 100644
 --- a/src/sync.h
 +++ b/src/sync.h
-@@ -78,8 +78,8 @@ void AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLi
+@@ -80,8 +80,8 @@ void AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLi
  inline void DeleteLock(void* cs) {}
  inline bool LockStackEmpty() { return true; }
  #endif
@@ -78,7 +87,7 @@ index 53213c208..fd127d319 100644
  
  /**
   * Template mixin that adds -Wthread-safety locking annotations and lock order
-@@ -224,28 +224,28 @@ public:
+@@ -218,28 +218,28 @@ public:
       friend class reverse_lock;
  };
  
@@ -116,7 +125,7 @@ index 53213c208..fd127d319 100644
          LeaveCritical();                                                    \
      }
 diff --git a/src/util/check.h b/src/util/check.h
-index bc62da344..d03e544e7 100644
+index e60088a2c6..2563012536 100644
 --- a/src/util/check.h
 +++ b/src/util/check.h
 @@ -36,15 +36,12 @@ class NonFatalCheckError : public std::runtime_error
