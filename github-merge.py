@@ -331,25 +331,25 @@ def main():
     try:
         subprocess.check_call([GIT,'checkout','-q',branch])
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot check out branch %s." % (branch), file=stderr)
+        print(f"ERROR: Cannot check out branch {branch}.", file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'fetch','-q',host_repo_from,'+refs/pull/'+pull+'/*:refs/heads/pull/'+pull+'/*',
                                                           '+refs/heads/'+branch+':refs/heads/'+base_branch])
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find pull request {} or branch {} on {}.".format(pull_reference,branch,host_repo_from), file=stderr)
+        print(f"ERROR: Cannot find pull request {pull_reference} or branch {branch} on {host_repo_from}.", file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'--no-pager','log','-q','-1','refs/heads/'+head_branch], stdout=devnull, stderr=stdout)
         head_commit = subprocess.check_output([GIT,'--no-pager','log','-1','--pretty=format:%H',head_branch]).decode('utf-8')
         assert len(head_commit) == 40
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find head of pull request {} on {}.".format(pull_reference,host_repo_from), file=stderr)
+        print(f"ERROR: Cannot find head of pull request {pull_reference} on {host_repo_from}.", file=stderr)
         sys.exit(3)
     try:
         subprocess.check_call([GIT,'--no-pager','log','-q','-1','refs/heads/'+merge_branch], stdout=devnull, stderr=stdout)
     except subprocess.CalledProcessError:
-        print("ERROR: Cannot find merge of pull request {} on {}." % (pull_reference,host_repo_from), file=stderr)
+        print(f"ERROR: Cannot find merge of pull request {pull_reference} on {host_repo_from}.", file=stderr)
         sys.exit(3)
     subprocess.check_call([GIT,'checkout','-q',base_branch])
     subprocess.call([GIT,'branch','-q','-D',local_merge_branch], stderr=devnull)
@@ -380,7 +380,7 @@ def main():
 
         symlink_files = get_symlink_files()
         for f in symlink_files:
-            print("ERROR: File %s was a symlink" % f)
+            print(f"ERROR: File '{f}' was a symlink")
         if len(symlink_files) > 0:
             sys.exit(4)
 
@@ -397,7 +397,7 @@ def main():
         # Run test command if configured.
         if testcmd:
             if subprocess.call(testcmd,shell=True):
-                print("ERROR: Running %s failed." % testcmd,file=stderr)
+                print(f"ERROR: Running '{testcmd}' failed.",file=stderr)
                 sys.exit(5)
 
             # Show the created merge.
