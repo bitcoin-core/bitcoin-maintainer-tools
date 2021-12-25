@@ -19,7 +19,7 @@ apt update
 apt install -y \
   git \
   build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 \
-  libevent-dev libboost-test-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev \
+  libevent-dev libboost-system-dev libboost-filesystem-dev \
   clang llvm
 
 git clone https://github.com/bitcoin-core/qa-assets.git
