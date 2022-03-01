@@ -12,6 +12,7 @@ It will do the following automatically:
 - post-process them into valid and committable format
   - remove invalid control characters
   - remove location tags (makes diffs less noisy)
+  - drop untranslated languages
 - update git for added translations
 - update build system
 '''
