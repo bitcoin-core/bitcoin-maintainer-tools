@@ -85,10 +85,13 @@ def sanitize_ghdata(rec):
         rec['body'] = ''
     rec['body'] = sanitize(rec['body'], newlines=True)
 
-    # "Github username may only contain alphanumeric characters or hyphens'.
-    # Use \Z instead of $ to not match final newline only end of string.
-    if not re.match('[a-zA-Z0-9-]+\Z', rec['user']['login'], re.DOTALL):
-        raise ValueError('Github username contains invalid characters: {}'.format(sanitize(rec['user']['login'])))
+    if rec['user'] is None: # User deleted account
+        rec['user'] = {'login': '[deleted]'}
+    else:
+        # "Github username may only contain alphanumeric characters or hyphens'.
+        # Use \Z instead of $ to not match final newline only end of string.
+        if not re.match('[a-zA-Z0-9-]+\Z', rec['user']['login'], re.DOTALL):
+            raise ValueError('Github username contains invalid characters: {}'.format(sanitize(rec['user']['login'])))
     return rec
 
 def retrieve_json(req_url, ghtoken, use_pagination=False):
