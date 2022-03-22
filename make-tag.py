@@ -90,41 +90,6 @@ def check_configure_ac(spec):
         print(f"{filename}: Version from tag {version_name(spec)} doesn't match specified version {version_name(cfg_spec)}", file=sys.stderr)
         sys.exit(1)
 
-def check_msvc_config_h(spec):
-    info = {}
-    filename = 'build_msvc/bitcoin_config.h'
-    with open(filename) as f:
-        for line in f:
-            m = re.match("#define ([A-Z_]+) (.+)$", line)
-            if m:
-                info[m.group(1)] = m.group(2)
-    # check if IS_RELEASE is set
-    if info["CLIENT_VERSION_IS_RELEASE"] != "true":
-        print(f'{filename}: IS_RELEASE is not set to true', file=sys.stderr)
-        sys.exit(1)
-
-    package_name = info['PACKAGE_NAME'][1:-1]
-    if info['PACKAGE_STRING'] != f'"{package_name} {spec.major}.{spec.minor}.{spec.build}"':
-        print(f'PACKAGE_STRING is not set correctly for msvc')
-        sys.exit(1)
-
-    if info['PACKAGE_VERSION'] != f'"{spec.major}.{spec.minor}.{spec.build}"':
-        print(f'PACKAGE_VERSION is not set correctly for msvc')
-        sys.exit(1)
-
-    msvc_spec = VersionSpec(
-            int(info['CLIENT_VERSION_MAJOR']),
-            int(info['CLIENT_VERSION_MINOR']),
-            int(info['CLIENT_VERSION_BUILD']),
-            None, # RC is not specified here
-        )
-
-    if (msvc_spec.major != spec.major or
-        msvc_spec.minor != spec.minor or
-        msvc_spec.build != spec.build):
-        print(f"{filename}: Version from tag {version_name(spec)} doesn't match specified version {version_name(msvc_spec)}", file=sys.stderr)
-        sys.exit(1)
-
 def main():
     try:
         tag = sys.argv[1]
@@ -146,9 +111,6 @@ def main():
 
     # Check version components against configure.ac in git tree
     check_configure_ac(spec)
-
-    # Check version components against MSVC build config
-    check_msvc_config_h(spec)
 
     # Generate base message
     if not spec.build:
