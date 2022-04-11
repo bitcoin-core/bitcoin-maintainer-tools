@@ -325,6 +325,18 @@ The following statuses can be shown:
 - `Bad` Known key but invalid PGP signature.
 - `Mismatch` Correct PGP signature but mismatching binaries.
 
+guix-verify
+-----------
+
+A script to verify guix deterministic build signatures for a release in one
+glance. It will print a matrix of signer versus build package ("noncodesigned"
+and "all"), and a list of missing keys.
+
+Arguments and usage are the same as gitian-verify except that you don't need the `pyyaml`
+module for this one.
+
+Example usage: `./guix-verify.py -r 23.0rc2 -d ../guix.sigs -k ../bitcoin/contrib/builder-keys/keys.txt`
+
 ghwatch
 -------
 
