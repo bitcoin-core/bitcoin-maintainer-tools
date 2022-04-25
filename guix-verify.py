@@ -27,6 +27,14 @@ class Missing(IntFlag):
     GPG = 1                # Missing from GPG
     KEYSTXT = 2            # Missing form keys.txt
 
+class BuilderResult:
+    '''A result for one builder for one build.'''
+    def __init__(self):
+        self.status = Status.NO_FILE
+        self.build_result = None
+        self.build_result_sig = None
+        self.validation_result = None
+
 class Attr:
     '''Terminal attributes.'''
     BOLD = '\033[1m'
@@ -122,6 +130,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--directory', '-d', help='Signatures directory', required=True)
     parser.add_argument('--keys', '-k', help='Path to keys.txt', required=True)
     parser.add_argument('--compare-to', '-c', help="Compare other manifests to COMPARE_TO's, if not given pick first")
+    parser.add_argument('--collect', '-w', help="Write valid signatures (for 'all') to <COLLECT> and <COLLECT>.asc")
 
     return parser.parse_args()
 
@@ -147,6 +156,7 @@ def validate_build(verifier: VerificationInterface,
     mismatches = {}
     missing_keys: Dict[Tuple[str, str], Missing] = collections.defaultdict(lambda: Missing(0))
     for signer_name in os.listdir(release_path):
+        r = results[signer_name] = BuilderResult()
         if verbose:
             print(f'For { signer_name }...')
         signer_dir = os.path.join(release_path, signer_name)
@@ -157,14 +167,18 @@ def validate_build(verifier: VerificationInterface,
         sig_path = os.path.join(signer_dir, sig_file)
 
         if not os.path.isfile(result_path) or not os.path.isfile(sig_path):
-            results[signer_name] = Status.NO_FILE
+            r.status = Status.NO_FILE
             continue
 
         with open(sig_path, 'rb') as f:
             sig_data = f.read()
         with open(result_path, 'rb') as f:
-            result_data = f.read() 
+            result_data = f.read()
         vres = verifier.verify_detached(sig_data, result_data)
+
+        r.build_result = result_data
+        r.build_result_sig = sig_data
+        r.validation_result = vres
 
         fingerprint = vres.p_fingerprint or vres.s_fingerprint
         # Check if the (signer, fingerprint) pair is specified in keys.txt (either the primary
@@ -181,35 +195,65 @@ def validate_build(verifier: VerificationInterface,
             if vres.error == VerificationInterface.MISSING_KEY:
                 # missing key, store fingerprint for reporting
                 missing_keys[(signer_name, fingerprint)] |= Missing.GPG
-                results[signer_name] = Status.MISSING_KEY
+                r.status = Status.MISSING_KEY
             elif vres.error == VerificationInterface.EXPIRED_KEY:
-                results[signer_name] = Status.EXPIRED_KEY
+                r.status = Status.EXPIRED_KEY
             else:
-                results[signer_name] = Status.INVALID_SIG
+                r.status = Status.INVALID_SIG
             continue
         else: # Valid PGP signature
             # if the key, signer pair is not in keys.txt, we can't trust it so
             # skip out here
             if not_in_keys:
-                results[signer_name] = Status.MISSING_KEY
+                r.status = Status.MISSING_KEY
                 continue
 
             result = result_data.decode()
 
             if reference is not None and result != reference:
-                results[signer_name] = Status.MISMATCH
+                r.status = Status.MISMATCH
                 mismatches[signer_name] = (result, reference)
             else:
-                results[signer_name] = Status.OK
+                r.status = Status.OK
 
             # if there is no reference, the first with a correct signature is the reference
             if reference is None:
                 reference = result
 
     if verbose:
-        print(results[signer_name])
-       
+        print(results)
+
     return (results, missing_keys, mismatches)
+
+def write_signatures(attest_file, sigs_file, results):
+    '''
+    Produce a build result file and a file with detached signatures for the
+    release.
+    '''
+    print(f'Collecting valid attestations into "{attest_file}" and "{sigs_file}"…')
+
+    # Collect all valid matching signatures.
+    results = list(results.items())
+    results = [r for r in results if r[1].status == Status.OK]
+
+    # Take the reference build result from the first valid result.
+    assert(results)
+    build_result = results[0][1].build_result
+
+    sigs = []
+    for builder_name, r in results:
+        assert(r.build_result == build_result) # all build results must match here
+        sigs.append((builder_name, r.build_result_sig))
+
+    # Sort by lower-case builder name (arbitrary but deterministic).
+    sigs.sort(key=lambda x:x[0].lower())
+
+    # Write output.
+    with open(attest_file, 'wb') as f:
+        f.write(build_result)
+    with open(sigs_file, 'wb') as f:
+        for builder_name, sig in sigs:
+            f.write(sig)
 
 def center(s: str, width: int, total_width: int) -> str:
     '''Center text.'''
@@ -224,7 +268,7 @@ def main() -> None:
     # build descriptor is only used to determine the package name
     # maybe we could derive it otherwise (or simply look for *any* assert file)
     all_missing_keys: Dict[Tuple[str,str],int] = collections.defaultdict(int)
-    all_results = {} 
+    all_results = {}
     all_mismatches = {}
 
     builds = ["noncodesigned", "all"]
@@ -256,6 +300,9 @@ def main() -> None:
         print(f'No build results were found in {args.directory} for release {args.release}', file=sys.stderr)
         exit(1)
 
+    if args.collect:
+        write_signatures(args.collect, args.collect + '.asc', all_results['all'])
+
     name_maxlen = max(max((len(name) for name in all_signers)), 8)
     build_maxlen = max(max(len(build) for build in builds),
                        max(glyph[1] for glyph in Attr.GLYPHS.values()))
@@ -275,7 +322,7 @@ def main() -> None:
         for build in builds:
             r: Optional[Status]
             try:
-                r = all_results[build][name]
+                r = all_results[build][name].status
             except KeyError:
                 r = None
             statuses.append(r)
