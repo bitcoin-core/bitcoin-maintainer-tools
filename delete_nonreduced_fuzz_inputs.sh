@@ -5,7 +5,7 @@
 # This script tries to do so in a way that is as deterministic as possible.
 #
 # The script should be run on an x86_64 virtual machine with only a minimal
-# vanilla Ubuntu Focal 20.04 installed.  Ideally, the script was run on
+# vanilla Ubuntu Jammy 22.04 installed.  Ideally, the script was run on
 # different architectures or even different OS versions, which come with
 # different library packages, but this is left as a future improvement.
 
@@ -19,7 +19,7 @@ apt update
 apt install -y \
   git \
   build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 \
-  libevent-dev libboost-test-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev \
+  libevent-dev libboost-dev \
   clang llvm
 
 git clone https://github.com/bitcoin-core/qa-assets.git
