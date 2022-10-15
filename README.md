@@ -82,6 +82,9 @@ It will do the following automatically:
 - Post-process them into valid and committable format
 - Add missing translations to the build system (TODO)
 
+To be able to pull translation files from the Transifex website, it needs
+the [Transifex CLI](https://github.com/transifex/cli).
+
 clang-format
 ------------
 
