@@ -52,12 +52,17 @@ def check_at_repository_root():
 
 def remove_current_translations():
     '''
-    Remove current translations, as well as temporary files that might be left behind
+    Remove current translations.
     We only want the active translations that are currently on transifex.
     This leaves bitcoin_en.ts untouched.
     '''
     for (_,name) in all_ts_files():
         os.remove(name)
+
+def remove_orig_files():
+    '''
+    Remove temporary files that might be left behind.
+    '''
     for (_,name) in all_ts_files(suffix=ORIGINAL_SUFFIX):
         os.remove(name + ORIGINAL_SUFFIX)
 
@@ -289,4 +294,5 @@ if __name__ == '__main__':
     postprocess_translations(xliff_compatible_mode)
     update_git()
     update_build_systems()
+    remove_orig_files()
 
