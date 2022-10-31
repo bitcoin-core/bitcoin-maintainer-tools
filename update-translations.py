@@ -62,7 +62,7 @@ def remove_current_translations():
         os.remove(name + ORIGINAL_SUFFIX)
 
 def fetch_all_translations():
-    if subprocess.call([TX, 'pull', '-f', '-a']):
+    if subprocess.call([TX, 'pull', '--translations', '--force', '--all']):
         print('Error while fetching translations', file=sys.stderr)
         sys.exit(1)
 
