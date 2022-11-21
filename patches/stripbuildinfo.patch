@@ -1,17 +1,17 @@
 diff --git a/src/bench/bench.h b/src/bench/bench.h
-index 17535e4e8..90f9c8ab7 100644
+index 63e1bf67e2..358dd663f8 100644
 --- a/src/bench/bench.h
 +++ b/src/bench/bench.h
-@@ -65,6 +65,6 @@ public:
+@@ -77,6 +77,6 @@ public:
  
- // BENCHMARK(foo) expands to:  benchmark::BenchRunner bench_11foo("foo", foo);
- #define BENCHMARK(n) \
--    benchmark::BenchRunner PASTE2(bench_, PASTE2(__LINE__, n))(STRINGIZE(n), n);
-+    benchmark::BenchRunner PASTE2(bench_, PASTE2(0, n))(STRINGIZE(n), n);
+ // BENCHMARK(foo) expands to:  benchmark::BenchRunner bench_11foo("foo", foo, priority_level);
+ #define BENCHMARK(n, priority_level) \
+-    benchmark::BenchRunner PASTE2(bench_, PASTE2(__LINE__, n))(STRINGIZE(n), n, priority_level);
++    benchmark::BenchRunner PASTE2(bench_, PASTE2(0, n))(STRINGIZE(n), n, priority_level);
  
  #endif // BITCOIN_BENCH_BENCH_H
 diff --git a/src/clientversion.cpp b/src/clientversion.cpp
-index 192e9c52b..e25705962 100644
+index 192e9c52bc..e257059624 100644
 --- a/src/clientversion.cpp
 +++ b/src/clientversion.cpp
 @@ -53,7 +53,7 @@ static std::string FormatVersion(int nVersion)
@@ -24,7 +24,7 @@ index 192e9c52b..e25705962 100644
  }
  
 diff --git a/src/compat/assumptions.h b/src/compat/assumptions.h
-index 92615b582..611894be1 100644
+index 92615b582a..611894be19 100644
 --- a/src/compat/assumptions.h
 +++ b/src/compat/assumptions.h
 @@ -13,9 +13,6 @@
@@ -38,20 +38,20 @@ index 92615b582..611894be1 100644
  // Assumption: We assume a C++17 (ISO/IEC 14882:2017) compiler (minimum requirement).
  // Example(s): We assume the presence of C++17 features everywhere :-)
 diff --git a/src/logging.h b/src/logging.h
-index ae8cad906..0222526f8 100644
+index 14a0f08f8d..32d4b7c708 100644
 --- a/src/logging.h
 +++ b/src/logging.h
-@@ -187,7 +187,7 @@ static inline void LogPrintf_(const std::string& logging_function, const std::st
+@@ -230,7 +230,7 @@ static inline void LogPrintf_(const std::string& logging_function, const std::st
      }
  }
  
--#define LogPrintf(...) LogPrintf_(__func__, __FILE__, __LINE__, __VA_ARGS__)
-+#define LogPrintf(...) LogPrintf_(__func__, __FILE__, 0, __VA_ARGS__)
+-#define LogPrintLevel_(category, level, ...) LogPrintf_(__func__, __FILE__, __LINE__, category, level, __VA_ARGS__)
++#define LogPrintLevel_(category, level, ...) LogPrintf_(__func__, __FILE__, 0, category, level, __VA_ARGS__)
  
- // Use a macro instead of a function for conditional logging to prevent
- // evaluating arguments when logging for the category is not enabled.
+ // Log unconditionally.
+ #define LogPrintf(...) LogPrintLevel_(BCLog::LogFlags::NONE, BCLog::Level::None, __VA_ARGS__)
 diff --git a/src/rest.cpp b/src/rest.cpp
-index 22b5d2e07..4d783accb 100644
+index a10d8a433f..48736c9b9d 100644
 --- a/src/rest.cpp
 +++ b/src/rest.cpp
 @@ -87,7 +87,7 @@ static NodeContext* GetNodeContext(const std::any& context, HTTPRequest* req)
@@ -73,44 +73,48 @@ index 22b5d2e07..4d783accb 100644
      }
      return node_context->chainman.get();
 diff --git a/src/sync.h b/src/sync.h
-index a17592611..c0aa8a672 100644
+index 1f4e191214..88d4ade0a0 100644
 --- a/src/sync.h
 +++ b/src/sync.h
-@@ -129,11 +129,11 @@ using RecursiveMutex = AnnotatedMixin<std::recursive_mutex>;
- /** Wrapped mutex: supports waiting but not recursive locking */
- using Mutex = AnnotatedMixin<std::mutex>;
+@@ -140,12 +140,12 @@ using Mutex = AnnotatedMixin<std::mutex>;
+  */
+ class GlobalMutex : public Mutex { };
  
 -#define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, __LINE__, &cs)
 +#define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, 0, &cs)
  
  inline void AssertLockNotHeldInline(const char* name, const char* file, int line, Mutex* cs) EXCLUSIVE_LOCKS_REQUIRED(!cs) { AssertLockNotHeldInternal(name, file, line, cs); }
  inline void AssertLockNotHeldInline(const char* name, const char* file, int line, RecursiveMutex* cs) LOCKS_EXCLUDED(cs) { AssertLockNotHeldInternal(name, file, line, cs); }
+ inline void AssertLockNotHeldInline(const char* name, const char* file, int line, GlobalMutex* cs) LOCKS_EXCLUDED(cs) { AssertLockNotHeldInternal(name, file, line, cs); }
 -#define AssertLockNotHeld(cs) AssertLockNotHeldInline(#cs, __FILE__, __LINE__, &cs)
 +#define AssertLockNotHeld(cs) AssertLockNotHeldInline(#cs, __FILE__, 0, &cs)
  
- /** Wrapper around std::unique_lock style lock for Mutex. */
- template <typename Mutex, typename Base = typename Mutex::UniqueLock>
-@@ -227,28 +227,28 @@ public:
+ /** Wrapper around std::unique_lock style lock for MutexType. */
+ template <typename MutexType>
+@@ -241,7 +241,7 @@ public:
       friend class reverse_lock;
  };
  
 -#define REVERSE_LOCK(g) typename std::decay<decltype(g)>::type::reverse_lock UNIQUE_NAME(revlock)(g, #g, __FILE__, __LINE__)
 +#define REVERSE_LOCK(g) typename std::decay<decltype(g)>::type::reverse_lock UNIQUE_NAME(revlock)(g, #g, __FILE__, 0)
  
- template<typename MutexArg>
- using DebugLock = UniqueLock<typename std::remove_reference<typename std::remove_pointer<MutexArg>::type>::type>;
+ // When locking a Mutex, require negative capability to ensure the lock
+ // is not already held
+@@ -255,23 +255,23 @@ inline MutexType& MaybeCheckNotHeld(MutexType& m) LOCKS_EXCLUDED(m) LOCK_RETURNE
+ template <typename MutexType>
+ inline MutexType* MaybeCheckNotHeld(MutexType* m) LOCKS_EXCLUDED(m) LOCK_RETURNED(m) { return m; }
  
--#define LOCK(cs) DebugLock<decltype(cs)> UNIQUE_NAME(criticalblock)(cs, #cs, __FILE__, __LINE__)
-+#define LOCK(cs) DebugLock<decltype(cs)> UNIQUE_NAME(criticalblock)(cs, #cs, __FILE__, 0)
+-#define LOCK(cs) UniqueLock UNIQUE_NAME(criticalblock)(MaybeCheckNotHeld(cs), #cs, __FILE__, __LINE__)
++#define LOCK(cs) UniqueLock UNIQUE_NAME(criticalblock)(MaybeCheckNotHeld(cs), #cs, __FILE__, 0)
  #define LOCK2(cs1, cs2)                                               \
--    DebugLock<decltype(cs1)> criticalblock1(cs1, #cs1, __FILE__, __LINE__); \
--    DebugLock<decltype(cs2)> criticalblock2(cs2, #cs2, __FILE__, __LINE__);
--#define TRY_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, __LINE__, true)
--#define WAIT_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, __LINE__)
-+    DebugLock<decltype(cs1)> criticalblock1(cs1, #cs1, __FILE__, 0); \
-+    DebugLock<decltype(cs2)> criticalblock2(cs2, #cs2, __FILE__, 0);
-+#define TRY_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, 0, true)
-+#define WAIT_LOCK(cs, name) DebugLock<decltype(cs)> name(cs, #cs, __FILE__, 0)
+-    UniqueLock criticalblock1(MaybeCheckNotHeld(cs1), #cs1, __FILE__, __LINE__); \
+-    UniqueLock criticalblock2(MaybeCheckNotHeld(cs2), #cs2, __FILE__, __LINE__)
+-#define TRY_LOCK(cs, name) UniqueLock name(MaybeCheckNotHeld(cs), #cs, __FILE__, __LINE__, true)
+-#define WAIT_LOCK(cs, name) UniqueLock name(MaybeCheckNotHeld(cs), #cs, __FILE__, __LINE__)
++    UniqueLock criticalblock1(MaybeCheckNotHeld(cs1), #cs1, __FILE__, 0); \
++    UniqueLock criticalblock2(MaybeCheckNotHeld(cs2), #cs2, __FILE__, 0)
++#define TRY_LOCK(cs, name) UniqueLock name(MaybeCheckNotHeld(cs), #cs, __FILE__, 0, true)
++#define WAIT_LOCK(cs, name) UniqueLock name(MaybeCheckNotHeld(cs), #cs, __FILE__, 0)
  
  #define ENTER_CRITICAL_SECTION(cs)                            \
      {                                                         \
@@ -128,10 +132,10 @@ index a17592611..c0aa8a672 100644
          LeaveCritical();                                                    \
      }
 diff --git a/src/util/check.h b/src/util/check.h
-index aca957925..1ec992ed2 100644
+index b6c03bed2a..b4a1380061 100644
 --- a/src/util/check.h
 +++ b/src/util/check.h
-@@ -45,11 +45,7 @@ T&& inline_check_non_fatal(T&& val, const char* file, int line, const char* func
+@@ -38,11 +38,7 @@ T&& inline_check_non_fatal(LIFETIMEBOUND T&& val, const char* file, int line, co
   * caller, which can then report the issue to the developers.
   */
  #define CHECK_NONFATAL(condition) \
@@ -144,7 +148,7 @@ index aca957925..1ec992ed2 100644
  
  /** Helper for Assert() */
  void assertion_fail(const char* file, int line, const char* func, const char* assertion);
-@@ -71,7 +67,7 @@ T&& inline_assertion_check(T&& val, [[maybe_unused]] const char* file, [[maybe_u
+@@ -64,7 +60,7 @@ T&& inline_assertion_check(LIFETIMEBOUND T&& val, [[maybe_unused]] const char* f
  }
  
  /** Identity function. Abort if the value compares equal to zero */
@@ -153,7 +157,7 @@ index aca957925..1ec992ed2 100644
  
  /**
   * Assume is the identity function.
-@@ -83,7 +79,7 @@ T&& inline_assertion_check(T&& val, [[maybe_unused]] const char* file, [[maybe_u
+@@ -76,13 +72,13 @@ T&& inline_assertion_check(LIFETIMEBOUND T&& val, [[maybe_unused]] const char* f
   * - For non-fatal errors in interactive sessions (e.g. RPC or command line
   *   interfaces), CHECK_NONFATAL() might be more appropriate.
   */
@@ -162,11 +166,10 @@ index aca957925..1ec992ed2 100644
  
  /**
   * NONFATAL_UNREACHABLE() is a macro that is used to mark unreachable code. It throws a NonFatalCheckError.
-@@ -92,6 +88,6 @@ T&& inline_assertion_check(T&& val, [[maybe_unused]] const char* file, [[maybe_u
+  */
  #define NONFATAL_UNREACHABLE()                                        \
      throw NonFatalCheckError(                                         \
-         format_internal_error("Unreachable code reached (non-fatal)", \
--                              __FILE__, __LINE__, __func__, PACKAGE_BUGREPORT))
-+                              __FILE__, 0, __func__, PACKAGE_BUGREPORT))
+-        "Unreachable code reached (non-fatal)", __FILE__, __LINE__, __func__)
++        "Unreachable code reached (non-fatal)", __FILE__, 0, __func__)
  
  #endif // BITCOIN_UTIL_CHECK_H
