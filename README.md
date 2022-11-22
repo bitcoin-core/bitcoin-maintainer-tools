@@ -279,39 +279,37 @@ Make a new release tag, performing a few checks.
 
 Usage: `make-tag.py <tag>`.
 
-gitian-verify
--------------
+guix-verify
+-----------
 
-A script to verify gitian deterministic build signatures for a release in one
-glance. It will print a matrix of signer versus build package, and a list of
-missing keys.
+A script to verify guix deterministic build signatures for a release in one
+glance. It will print a matrix of signer versus build package ("noncodesigned"
+and "all"), and a list of missing keys.
 
-To be able to read gitian's YAML files and verify PGP signatures, it needs the
-`pyyaml` and `gpg` modules. This can be installed from pip, for example:
+To be able to verify PGP signatures, it needs the `gpg` modules. This can be
+installed from pip, for example:
 
-```bash
-pip3 install --user pyyaml gpg
+```sh
+pip3 install --user gpg
 ```
-(or install the distribution package, in Debian/Ubuntu this is `python3-yaml` and `python3-gpg`)
 
-The `gpg` module requires the [gpgme](https://www.gnupg.org/software/gpgme/index.html) library
-which is usually present on Linux, and can be installed with `brew install gpgme` on macOS.
+(or install the distribution package, in Debian/Ubuntu this is `python3-gpg`).
 
-Example usage: `./gitian-verify.py -r 0.21.0rc5 -d ../gitian.sigs -k ../bitcoin/contrib/builder-keys/keys.txt`
+Example usage: `./guix-verify.py -r 24.0 -d ../guix.sigs -k ../bitcoin/contrib/builder-keys/keys.txt`
 
 Where
 
-- `-r 0.21.0rc5` specifies the release to verify signatures for.
+- `-r 24.0` specifies the release to verify signatures for.
 - `-d ../gitian.sigs` specifies the directory where the repository with signatures, [gitian.sigs](https://github.com/bitcoin-core/gitian.sigs/) is checked out.
 - `../bitcoin/contrib/builder-keys/keys.txt` is the path to `keys.txt` file inside the main repository that specifies the valid keys and what signers they belong to.
 
 Example output:
 ```
-Signer            linux      osx-unsigned  win-unsigned   osx-signed    win-signed
-justinmoon        No Key        No Key        No Key        No Key        No Key
-laanwj              OK            OK            OK            OK            OK
-luke-jr             OK            OK            OK            OK            OK
-marco               -             OK            OK            OK            OK
+Signer        noncodesigned       all
+0xb10c           No Key            -
+achow101           OK             OK       
+benthecarman     No Key            -
+...
 
 Missing keys
 norisg         3A51FF4D536C5B19BE8800A0F2FC9F9465A2995A  from GPG, from keys.txt
@@ -327,18 +325,6 @@ The following statuses can be shown:
 - `Expired` Known key but it has expired.
 - `Bad` Known key but invalid PGP signature.
 - `Mismatch` Correct PGP signature but mismatching binaries.
-
-guix-verify
------------
-
-A script to verify guix deterministic build signatures for a release in one
-glance. It will print a matrix of signer versus build package ("noncodesigned"
-and "all"), and a list of missing keys.
-
-Arguments and usage are the same as gitian-verify except that you don't need the `pyyaml`
-module for this one.
-
-Example usage: `./guix-verify.py -r 23.0rc2 -d ../guix.sigs -k ../bitcoin/contrib/builder-keys/keys.txt`
 
 ghwatch
 -------
