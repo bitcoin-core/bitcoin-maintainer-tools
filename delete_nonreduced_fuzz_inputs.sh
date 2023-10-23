@@ -22,7 +22,7 @@ apt install -y \
   libsqlite3-dev libevent-dev libboost-dev \
   clang llvm
 
-git clone https://github.com/bitcoin-core/qa-assets.git
+git clone --depth=1 https://github.com/bitcoin-core/qa-assets.git
 (
   cd qa-assets
   mv ./"${FUZZ_INPUTS_DIR}" ../all_inputs
@@ -31,7 +31,7 @@ git clone https://github.com/bitcoin-core/qa-assets.git
   git commit -a -m "Delete fuzz inputs"
 )
 
-git clone https://github.com/bitcoin/bitcoin.git
+git clone --depth=1 https://github.com/bitcoin/bitcoin.git
 (
   cd bitcoin
 
