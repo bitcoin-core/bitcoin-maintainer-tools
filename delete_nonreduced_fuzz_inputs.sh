@@ -5,7 +5,7 @@
 # This script tries to do so in a way that is as deterministic as possible.
 #
 # The script should be run on an x86_64 virtual machine with only a minimal
-# vanilla Ubuntu Jammy 22.04 installed.  Ideally, the script was run on
+# vanilla Ubuntu Noble 24.04 installed.  Ideally, the script was run on
 # different architectures or even different OS versions, which come with
 # different library packages, but this is left as a future improvement.
 
