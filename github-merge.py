@@ -91,7 +91,7 @@ def sanitize_ghdata(rec):
         # "Github username may only contain alphanumeric characters or hyphens'.
         # Sometimes bot have a "[bot]" suffix in the login, so we also match for that
         # Use \Z instead of $ to not match final newline only end of string.
-        if not re.match('[a-zA-Z0-9-]+(\[bot\])?\Z', rec['user']['login'], re.DOTALL):
+        if not re.match(r'[a-zA-Z0-9-]+(\[bot\])?\Z', rec['user']['login'], re.DOTALL):
             raise ValueError('Github username contains invalid characters: {}'.format(sanitize(rec['user']['login'])))
     return rec
 
