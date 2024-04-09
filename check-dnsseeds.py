@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
 Simple script to check the status of all Bitcoin Core DNS seeds.
-Seeds are available from https://github.com/bitcoin/bitcoin/blob/master/src/chainparams.cpp
+Seeds are available from https://github.com/bitcoin/bitcoin/blob/master/src/kernel/chainparams.cpp
 '''
 import subprocess
 
@@ -9,17 +9,17 @@ SEEDS_PER_NETWORK={
     'mainnet': [
         "seed.bitcoin.sipa.be",
         "dnsseed.bluematt.me",
-        "dnsseed.bitcoin.dashjr.org",
+        "dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us",
         "seed.bitcoinstats.com",
         "seed.bitcoin.jonasschnelli.ch",
-        "seed.btc.petertodd.org",
+        "seed.btc.petertodd.net",
         "seed.bitcoin.sprovoost.nl",
         "dnsseed.emzy.de",
         "seed.bitcoin.wiz.biz",
     ],
     'testnet': [
         "testnet-seed.bitcoin.jonasschnelli.ch",
-        "seed.tbtc.petertodd.org",
+        "seed.tbtc.petertodd.net",
         "testnet-seed.bluematt.me",
         "seed.testnet.bitcoin.sprovoost.nl",
     ],
