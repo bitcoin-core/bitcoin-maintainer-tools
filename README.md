@@ -279,53 +279,6 @@ Make a new release tag, performing a few checks.
 
 Usage: `make-tag.py <tag>`.
 
-guix-verify
------------
-
-A script to verify guix deterministic build signatures for a release in one
-glance. It will print a matrix of signer versus build package ("noncodesigned"
-and "all"), and a list of missing keys.
-
-To be able to verify PGP signatures, it needs the `gpg` modules. This can be
-installed from pip, for example:
-
-```sh
-pip3 install --user gpg
-```
-
-(or install the distribution package, in Debian/Ubuntu this is `python3-gpg`).
-
-Example usage: `./guix-verify.py -r 24.0 -d ../guix.sigs -k ../bitcoin/contrib/builder-keys/keys.txt`
-
-Where
-
-- `-r 24.0` specifies the release to verify signatures for.
-- `-d ../gitian.sigs` specifies the directory where the repository with signatures, [gitian.sigs](https://github.com/bitcoin-core/gitian.sigs/) is checked out.
-- `../bitcoin/contrib/builder-keys/keys.txt` is the path to `keys.txt` file inside the main repository that specifies the valid keys and what signers they belong to.
-
-Example output:
-```
-Signer        noncodesigned       all
-0xb10c           No Key            -
-achow101           OK             OK       
-benthecarman     No Key            -
-...
-
-Missing keys
-norisg         3A51FF4D536C5B19BE8800A0F2FC9F9465A2995A  from GPG, from keys.txt
-...
-```
-
-See `--help` for the full list of options and their descriptions.
-
-The following statuses can be shown:
-
-- `Ok` Full match.
-- `No key` Signer name/key combination not in keys.txt, or key not known to GPG (which one of these it is, or both, will be listed under "Missing keys").
-- `Expired` Known key but it has expired.
-- `Bad` Known key but invalid PGP signature.
-- `Mismatch` Correct PGP signature but mismatching binaries.
-
 ghwatch
 -------
 
