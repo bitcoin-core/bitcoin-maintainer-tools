@@ -47,7 +47,7 @@ def link_leveldb(src: str, dst: str):
     ldb_files = []
     other_files = []
     for fname in os.listdir(src):
-        if re.match('^[0-9]{6}.ldb$', fname):
+        if re.match('^[0-9]{6,}.ldb$', fname):
             ldb_files.append(fname)
         else:
             other_files.append(fname)
