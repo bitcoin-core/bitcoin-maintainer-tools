@@ -200,6 +200,13 @@ check-dnsseeds
 
 Sanity-check the DNS seeds used by Bitcoin Core.
 
+Dependencies:
+```sh
+pip install dnspython
+# or
+apt install python3-dnspython
+``
+
 Usage:
 
 ```bash
@@ -209,20 +216,31 @@ check-dnsseeds.py
 Example output:
 
 ```bash
-* Mainnet
-OK   seed.bitcoin.sipa.be (40 results)
-OK   dnsseed.bluematt.me (33 results)
-FAIL dnsseed.bitcoin.dashjr.org
-OK   seed.bitcoinstats.com (50 results)
-OK   seed.bitcoin.jonasschnelli.ch (38 results)
-OK   seed.btc.petertodd.org (23 results)
-OK   seed.bitcoin.sprovoost.nl (35 results)
-OK   dnsseed.emzy.de (41 results)
+Flags: x9
+Status DNS name                                 S Totals     IPv4                  IPv6
+                                                  nconn/n    nconn/n           TTL nconn/n           TTL
+* mainnet
+NONE   seed.bitcoin.sipa.be.                      0/0        0/0                   0/0
+OK     dnsseed.bluematt.me.                     ✓ 30/31      21/21              60 9/10               60
+OK     dnsseed.bitcoin.dashjr-list-of-p2p-nodes   22/22      22/22            3000 0/0
+ERR    seed.bitcoinstats.com.                     0/0        SERVFAIL              SERVFAIL
+ERR    seed.bitcoin.jonasschnelli.ch.             0/0        SERVFAIL              SERVFAIL
+OK     seed.btc.petertodd.net.                  ✓ 15/36      9/23             3202 6/13             3202
+OK     seed.bitcoin.sprovoost.nl.               ✓ 25/36      18/23            3202 7/13             3202
+OK     dnsseed.emzy.de.                         ✓ 36/39      23/25            3202 13/14            3203
+OK     seed.bitcoin.wiz.biz.                    ✓ 25/31      18/21              60 7/10               60
+OK     dnsseed.mainnet.bitcoin.achow101.com.    ✓ 36/40      17/20              60 19/20              60
 
-* Testnet
-OK   testnet-seed.bitcoin.jonasschnelli.ch (36 results)
-OK   seed.tbtc.petertodd.org (38 results)
-OK   testnet-seed.bluematt.me (5 results)
+* testnet
+NONE   testnet-seed.bitcoin.jonasschnelli.ch.     0/0        0/0                   0/0
+OK     seed.tbtc.petertodd.net.                 ✓ 21/36      12/23            3204 9/13             3204
+NONE   testnet-seed.bluematt.me.                ✓ 0/0        0/0                   0/0
+OK     seed.testnet.bitcoin.sprovoost.nl.         12/12      0/0                   12/12            3204
+OK     dnsseed.testnet.bitcoin.achow101.com.    ✓ 40/40      20/20              60 20/20              59
+
+* signet
+OK     seed.signet.bitcoin.sprovoost.nl.          11/12      0/0                   11/12            3204
+OK     dnsseed.signet.bitcoin.achow101.com.     ✓ 33/40      18/20              60 15/20              60
 ```
 
 delete non-reduced fuzz inputs
