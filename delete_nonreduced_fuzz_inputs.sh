@@ -18,7 +18,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt update
 apt install -y \
   git \
-  build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 \
+  build-essential pkg-config bsdmainutils python3 cmake \
   libsqlite3-dev libevent-dev libboost-dev \
   lsb-release wget software-properties-common gnupg
 
@@ -43,21 +43,22 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
 (
   cd bitcoin
 
-  ./autogen.sh
-
   echo "Adding reduced seeds with afl-cmin"
 
-  ./configure LDFLAGS="-fuse-ld=lld" CC=afl-clang-fast CXX=afl-clang-fast++ --enable-fuzz
-  make clean
-  make -j $(nproc)
+  rm -rf build_fuzz/
+  export LDFLAGS="-fuse-ld=lld"
+  cmake -B build_fuzz \
+    -DCMAKE_C_COMPILER=afl-clang-fast -DCMAKE_CXX_COMPILER=afl-clang-fast++ \
+    -DBUILD_FOR_FUZZING=ON
+  cmake --build build_fuzz -j$(nproc)
 
-  WRITE_ALL_FUZZ_TARGETS_AND_ABORT="/tmp/a" "./src/test/fuzz/fuzz" || true
+  WRITE_ALL_FUZZ_TARGETS_AND_ABORT="/tmp/a" "./build_fuzz/src/test/fuzz/fuzz" || true
   readarray FUZZ_TARGETS < "/tmp/a"
   for fuzz_target in ${FUZZ_TARGETS[@]}; do
     if [ -d "../all_inputs/$fuzz_target" ]; then
       mkdir --parents ../qa-assets/"${FUZZ_INPUTS_DIR}"/$fuzz_target
       # Allow timeouts and crashes with "-A", "-T all" to use all available cores
-      FUZZ=$fuzz_target afl-cmin -T all -A -i ../all_inputs/$fuzz_target -o ../qa-assets/"${FUZZ_INPUTS_DIR}"/$fuzz_target -- ./src/test/fuzz/fuzz
+      FUZZ=$fuzz_target afl-cmin -T all -A -i ../all_inputs/$fuzz_target -o ../qa-assets/"${FUZZ_INPUTS_DIR}"/$fuzz_target -- ./build_fuzz/src/test/fuzz/fuzz
     else
       echo "No input corpus for $fuzz_target (ignoring)"
     fi
@@ -72,11 +73,13 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
   for sanitizer in {"fuzzer","fuzzer,address,undefined,integer"}; do
     echo "Adding reduced seeds for sanitizer=${sanitizer}"
 
-    ./configure LDFLAGS="-fuse-ld=lld" CC=clang-$LLVM_VERSION CXX=clang++-$LLVM_VERSION --enable-fuzz --with-sanitizers="${sanitizer}"
-    make clean
-    make -j $(nproc)
+    rm -rf build_fuzz/
+    cmake -B build_fuzz \
+      -DCMAKE_C_COMPILER=clang-$LLVM_VERSION -DCMAKE_CXX_COMPILER=clang++-$LLVM_VERSION \
+      -DBUILD_FOR_FUZZING=ON -DSANITIZERS="$sanitizer"
+    cmake --build build_fuzz -j$(nproc)
 
-    ./test/fuzz/test_runner.py -l DEBUG --par=$(nproc) --m_dir=../all_inputs ../qa-assets/"${FUZZ_INPUTS_DIR}"
+    ( cd build_fuzz; ./test/fuzz/test_runner.py -l DEBUG --par=$(nproc) --m_dir=../../all_inputs ../../qa-assets/"${FUZZ_INPUTS_DIR}" )
 
     (
       cd ../qa-assets
