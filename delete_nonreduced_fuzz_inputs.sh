@@ -20,7 +20,12 @@ apt install -y \
   git \
   build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 \
   libsqlite3-dev libevent-dev libboost-dev \
-  clang llvm
+  lsb-release wget software-properties-common gnupg
+
+export LLVM_VERSION=18
+wget https://apt.llvm.org/llvm.sh && chmod +x ./llvm.sh
+./llvm.sh $LLVM_VERSION all
+ln -s $(which llvm-symbolizer-$LLVM_VERSION) /usr/bin/llvm-symbolizer
 
 git clone --depth=1 https://github.com/bitcoin-core/qa-assets.git
 (
@@ -40,7 +45,7 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
   for sanitizer in {"fuzzer","fuzzer,address,undefined,integer"}; do
     echo "Adding reduced seeds for sanitizer=${sanitizer}"
 
-    ./configure CC=clang CXX=clang++ --enable-fuzz --with-sanitizers="${sanitizer}"
+    ./configure CC=clang-$LLVM_VERSION CXX=clang++-$LLVM_VERSION --enable-fuzz --with-sanitizers="${sanitizer}"
     make clean
     make -j $(nproc)
 
