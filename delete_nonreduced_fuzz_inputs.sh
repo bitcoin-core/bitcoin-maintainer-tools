@@ -9,7 +9,7 @@
 # different architectures or even different OS versions, which come with
 # different library packages, but this is left as a future improvement.
 
-export FUZZ_INPUTS_DIR="fuzz_seed_corpus"
+export FUZZ_CORPORA_DIR="fuzz_corpora"
 
 set -e
 
@@ -33,7 +33,7 @@ make -C AFLplusplus LLVM_CONFIG=llvm-config-$LLVM_VERSION PERFORMANCE=1 install 
 git clone --depth=1 https://github.com/bitcoin-core/qa-assets.git
 (
   cd qa-assets
-  mv ./"${FUZZ_INPUTS_DIR}" ../all_inputs
+  mv ./"${FUZZ_CORPORA_DIR}" ../all_inputs
   git config user.name "delete_nonreduced_inputs script"
   git config user.email "noreply@noreply.noreply"
   git commit -a -m "Delete fuzz inputs"
@@ -56,9 +56,9 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
   readarray FUZZ_TARGETS < "/tmp/a"
   for fuzz_target in ${FUZZ_TARGETS[@]}; do
     if [ -d "../all_inputs/$fuzz_target" ]; then
-      mkdir --parents ../qa-assets/"${FUZZ_INPUTS_DIR}"/$fuzz_target
+      mkdir --parents ../qa-assets/"${FUZZ_CORPORA_DIR}"/$fuzz_target
       # Allow timeouts and crashes with "-A", "-T all" to use all available cores
-      FUZZ=$fuzz_target afl-cmin -T all -A -i ../all_inputs/$fuzz_target -o ../qa-assets/"${FUZZ_INPUTS_DIR}"/$fuzz_target -- ./build_fuzz/src/test/fuzz/fuzz
+      FUZZ=$fuzz_target afl-cmin -T all -A -i ../all_inputs/$fuzz_target -o ../qa-assets/"${FUZZ_CORPORA_DIR}"/$fuzz_target -- ./build_fuzz/src/test/fuzz/fuzz
     else
       echo "No input corpus for $fuzz_target (ignoring)"
     fi
@@ -66,7 +66,7 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
 
   (
     cd ../qa-assets
-    git add "${FUZZ_INPUTS_DIR}"
+    git add "${FUZZ_CORPORA_DIR}"
     git commit -m "Reduced inputs for afl-cmin"
   )
 
@@ -79,11 +79,11 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
       -DBUILD_FOR_FUZZING=ON -DSANITIZERS="$sanitizer"
     cmake --build build_fuzz -j$(nproc)
 
-    ( cd build_fuzz; ./test/fuzz/test_runner.py -l DEBUG --par=$(nproc) --m_dir=../../all_inputs ../../qa-assets/"${FUZZ_INPUTS_DIR}" )
+    ( cd build_fuzz; ./test/fuzz/test_runner.py -l DEBUG --par=$(nproc) --m_dir=../../all_inputs ../../qa-assets/"${FUZZ_CORPORA_DIR}" )
 
     (
       cd ../qa-assets
-      git add "${FUZZ_INPUTS_DIR}"
+      git add "${FUZZ_CORPORA_DIR}"
       git commit -m "Reduced inputs for ${sanitizer}"
     )
   done
