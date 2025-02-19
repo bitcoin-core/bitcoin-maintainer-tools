@@ -38,7 +38,7 @@ def parse_tag(tag):
     - v1.2rc3
     - v1.2.3rc4
     '''
-    m = re.match("^v([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:rc([0-9])+)?$", tag)
+    m = re.match(r"^v([0-9]+)\.([0-9]+)(?:\.([0-9]+))?(?:rc([0-9])+)?$", tag)
 
     if m is None:
         print(f"Invalid tag {tag}", file=sys.stderr)
@@ -71,7 +71,7 @@ def check_configure_ac(spec):
     filename = 'configure.ac'
     with open(filename) as f:
         for line in f:
-            m = re.match("define\(_CLIENT_VERSION_([A-Z_]+), ([0-9a-z]+)\)", line)
+            m = re.match(r"define\(_CLIENT_VERSION_([A-Z_]+), ([0-9a-z]+)\)", line)
             if m:
                 info[m.group(1)] = m.group(2)
     # check if IS_RELEASE is set
