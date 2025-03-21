@@ -65,7 +65,11 @@ class TablePrinter:
         self.columns = columns
 
     def format_row(self, rec):
-        return ' '.join((entry[0] + pad(str(entry[1]), col.width, col.align) + self.attr.close(entry[0]) for entry, col in zip(rec, self.columns)))
+        return ' '.join(
+            (entry[0] +
+             pad(str(entry[1]), col.width, col.align) +
+             self.attr.close()
+             for entry, col in zip(rec, self.columns)))
 
     def print_row(self, rec):
         self.out.write(f'{self.format_row(rec)}\n')
