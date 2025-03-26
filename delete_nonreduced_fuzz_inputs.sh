@@ -52,13 +52,13 @@ git clone --depth=1 https://github.com/bitcoin/bitcoin.git
     -DBUILD_FOR_FUZZING=ON
   cmake --build build_fuzz -j$(nproc)
 
-  WRITE_ALL_FUZZ_TARGETS_AND_ABORT="/tmp/a" "./build_fuzz/src/test/fuzz/fuzz" || true
+  WRITE_ALL_FUZZ_TARGETS_AND_ABORT="/tmp/a" "./build_fuzz/bin/fuzz" || true
   readarray FUZZ_TARGETS < "/tmp/a"
   for fuzz_target in ${FUZZ_TARGETS[@]}; do
     if [ -d "../all_inputs/$fuzz_target" ]; then
       mkdir --parents ../qa-assets/"${FUZZ_CORPORA_DIR}"/$fuzz_target
       # Allow timeouts and crashes with "-A", "-T all" to use all available cores
-      FUZZ=$fuzz_target afl-cmin -T all -A -i ../all_inputs/$fuzz_target -o ../qa-assets/"${FUZZ_CORPORA_DIR}"/$fuzz_target -- ./build_fuzz/src/test/fuzz/fuzz
+      FUZZ=$fuzz_target afl-cmin -T all -A -i ../all_inputs/$fuzz_target -o ../qa-assets/"${FUZZ_CORPORA_DIR}"/$fuzz_target -- ./build_fuzz/bin/fuzz
     else
       echo "No input corpus for $fuzz_target (ignoring)"
     fi
