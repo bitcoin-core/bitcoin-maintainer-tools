@@ -10,21 +10,27 @@ SEEDS_PER_NETWORK={
         "seed.bitcoin.sipa.be",
         "dnsseed.bluematt.me",
         "dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us",
-        "seed.bitcoinstats.com",
         "seed.bitcoin.jonasschnelli.ch",
         "seed.btc.petertodd.net",
         "seed.bitcoin.sprovoost.nl",
         "dnsseed.emzy.de",
         "seed.bitcoin.wiz.biz",
+        "seed.mainnet.achownodes.xyz",
     ],
     'testnet': [
         "testnet-seed.bitcoin.jonasschnelli.ch",
         "seed.tbtc.petertodd.net",
         "testnet-seed.bluematt.me",
         "seed.testnet.bitcoin.sprovoost.nl",
+        "seed.testnet.achownodes.xyz",
+    ],
+    'testnet4': [
+        "seed.testnet4.bitcoin.sprovoost.nl",
+        "seed.testnet4.wiz.biz",
     ],
     'signet': [
         "seed.signet.bitcoin.sprovoost.nl",
+        "seed.signet.achownodes.xyz"
     ],
 }
 
