@@ -266,7 +266,7 @@ generated from a previous release.
 
 Example usage:
 
-    ../maintainer-tools/list-pulls.py v0.18.0 0.19 relnot/pulls-exclude.json > relnot/pulls.md
+    ../maintainer-tools/list-pulls.py v28.0 29 relnot/pulls-exclude.json > relnot/pulls.md
 
 The output of this script is a first draft based on rough heuristics, and
 likely needs to be extensively manually edited before ending up in the release
