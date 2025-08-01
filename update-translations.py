@@ -286,6 +286,13 @@ def update_build_systems():
         f.write(' \\\n'.join(f'  qt/locale/{filename}' for (filename, basename, lang) in filename_lang))
         f.write('\n') # make sure last line doesn't end with a backslash
 
+    # Generate ts_files.cmake with an explicit list of .ts files in src/qt/locale
+    with open(f'{LOCALE_DIR}/ts_files.cmake', 'w') as f:
+        f.write('set(ts_files\n')
+        for (filename, basename, lang) in filename_lang:
+            f.write(f'  {basename}.ts\n')
+        f.write(')\n')
+
 if __name__ == '__main__':
     check_at_repository_root()
     remove_current_translations()
