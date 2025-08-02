@@ -103,7 +103,7 @@ def main():
     try:
         tag = sys.argv[1]
     except IndexError:
-        print("Usage: make-tag.py <tag>, e.g. v0.19.0 or v0.19.0rc3", file=sys.stderr)
+        print("Usage: make-tag.py <tag>, e.g. v29.0 or v29.1rc3", file=sys.stderr)
         sys.exit(1)
 
     spec = parse_tag(tag)

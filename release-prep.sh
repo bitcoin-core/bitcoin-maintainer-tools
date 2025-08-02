@@ -33,7 +33,7 @@ to be running at the time that this script is run.
 
 Arguments:
 version		    Version number to set following the MAJOR.MINOR.REVISION format. Only required if
-                    a version bump will be done. e.g. 0.14.0
+                    a version bump will be done. e.g. 29.0
 block_chain_size    The size of the blockchain for the intro display. Should contain a little bit of 
                     overhead. Only required if BLOCK_CHAIN_SIZE will be updated. e.g. 120
 

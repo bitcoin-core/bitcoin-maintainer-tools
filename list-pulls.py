@@ -14,7 +14,7 @@ generated from a previous release.
 
 Example usage:
 
-    ../maintainer-tools/list-pulls.py v0.18.0 0.19 relnot/pulls-exclude.json > relnot/pulls.md
+    ../maintainer-tools/list-pulls.py v28.0 29 relnot/pulls-exclude.json > relnot/pulls.md
 
 The output of this script is a first draft based on rough heuristics, and
 likely needs to be extensively manually edited before ending up in the release
@@ -217,7 +217,7 @@ def tests():
 
 # == Main program ==
 tests()
-ref_from = sys.argv[1] # 'v0.10.0rc1'
+ref_from = sys.argv[1] # 'v29.1rc1'
 ref_to = sys.argv[2] # 'master'
 
 # read exclude file
