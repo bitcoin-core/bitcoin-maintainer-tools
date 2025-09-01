@@ -32,7 +32,7 @@ SOURCE_LANG = 'bitcoin_en'
 # Directory with locale files
 LOCALE_DIR = 'src/qt/locale'
 # Minimum number of non-numerus messages for translation to be considered at all
-MIN_NUM_NONNUMERUS_MESSAGES = 10
+MIN_NUM_NONNUMERUS_MESSAGES = 120
 # Regexp to check for Bitcoin addresses
 ADDRESS_REGEXP = re.compile('([13]|bc1)[a-zA-Z0-9]{30,}')
 # Path to git
