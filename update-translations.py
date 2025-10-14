@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 # Name of Qt lconvert tool
 LCONVERT = 'lconvert'
 # Name of transifex tool
-TX = 'tx'
+TX = os.getenv('TX', 'tx')
 # Name of source language file without extension
 SOURCE_LANG = 'bitcoin_en'
 # Directory with locale files
