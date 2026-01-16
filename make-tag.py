@@ -62,18 +62,10 @@ def parse_tag(tag):
 
     return VersionSpec(int(major), int(minor), int(build), int(rc))
 
-def check_configure_ac(spec):
+def check_version_from_file(spec, info, filename):
     '''
-    Parse configure.ac and return
-    (major, minor, build, rc)
+    Check version read from file matches spec
     '''
-    info = {}
-    filename = 'configure.ac'
-    with open(filename) as f:
-        for line in f:
-            m = re.match("define\(_CLIENT_VERSION_([A-Z_]+), ([0-9a-z]+)\)", line)
-            if m:
-                info[m.group(1)] = m.group(2)
     # check if IS_RELEASE is set
     if info["IS_RELEASE"] != "true":
         print(f'{filename}: IS_RELEASE is not set to true', file=sys.stderr)
@@ -89,6 +81,34 @@ def check_configure_ac(spec):
     if cfg_spec != spec:
         print(f"{filename}: Version from tag {version_name(spec)} doesn't match specified version {version_name(cfg_spec)}", file=sys.stderr)
         sys.exit(1)
+
+def check_configure_ac(spec):
+    '''
+    Check passed version matches configure.ac
+    '''
+    info = {}
+    filename = 'configure.ac'
+    with open(filename) as f:
+        for line in f:
+            m = re.match("define\(_CLIENT_VERSION_([A-Z_]+), ([0-9a-z]+)\)", line)
+            if m:
+                info[m.group(1)] = m.group(2)
+    check_version_from_file(spec, info, filename)
+
+def check_cmakelists(spec):
+    '''
+    Check passed version matches CMakeLists.txt
+    '''
+    info = {}
+    filename = 'CMakeLists.txt'
+    print(filename)
+    with open(filename) as f:
+        for line in f:
+            m = re.match(r"set\(CLIENT_VERSION_([A-Z_]+) ([0-9a-z\"]+)\)", line)
+            if m:
+                info[m.group(1)] = m.group(2).strip('"')
+
+    check_version_from_file(spec, info, filename)
 
 def main():
     try:
@@ -110,7 +130,10 @@ def main():
         sys.exit(1)
 
     # Check version components against configure.ac in git tree
-    check_configure_ac(spec)
+    if os.path.isfile('configure.ac'):
+        check_configure_ac(spec)
+    else:
+        check_cmakelists(spec)
 
     # Generate base message
     if not spec.build:
