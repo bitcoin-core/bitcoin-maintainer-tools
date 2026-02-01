@@ -9,7 +9,6 @@ SEEDS_PER_NETWORK={
     'mainnet': [
         "seed.bitcoin.sipa.be",
         "dnsseed.bluematt.me",
-        "dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us",
         "seed.bitcoin.jonasschnelli.ch",
         "seed.btc.petertodd.net",
         "seed.bitcoin.sprovoost.nl",
