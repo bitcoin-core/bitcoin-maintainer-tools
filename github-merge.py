@@ -285,6 +285,7 @@ def main():
     host = git_config_get('githubmerge.host','git@github.com')
     opt_branch = git_config_get('githubmerge.branch',None)
     merge_author_email = git_config_get('githubmerge.merge-author-email',None)
+    merge_author_name = git_config_get('githubmerge.merge-author-name', 'merge-script')
     testcmd = git_config_get('githubmerge.testcmd')
     ghtoken = git_config_get('user.ghtoken')
     signingkey = git_config_get('user.signingkey')
@@ -458,7 +459,9 @@ def main():
             reply = ask_prompt("Type 's' to sign off on the above merge, or 'x' to reject and exit.").lower()
             if reply == 's':
                 try:
-                    config = ['-c', 'user.name=merge-script']
+                    config = []
+                    if merge_author_name:
+                        config += ['-c', f'user.name={merge_author_name}']
                     if merge_author_email:
                         config += ['-c', f'user.email={merge_author_email}']
                     subprocess.check_call([GIT] + config + ['commit','-q','--gpg-sign','--amend','--no-edit','--reset-author'])
