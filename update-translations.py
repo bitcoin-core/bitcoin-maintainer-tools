@@ -24,7 +24,7 @@ import io
 import xml.etree.ElementTree as ET
 
 # Name of Qt lconvert tool
-LCONVERT = 'lconvert'
+LCONVERT = os.getenv('LCONVERT', '/usr/lib/qt6/bin/lconvert')
 # Name of transifex tool
 TX = os.getenv('TX', 'tx')
 # Name of source language file without extension
