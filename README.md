@@ -225,11 +225,6 @@ OK   seed.tbtc.petertodd.org (38 results)
 OK   testnet-seed.bluematt.me (5 results)
 ```
 
-delete non-reduced fuzz inputs
-------------------------------
-
-Refer to the documentation inside the script.
-
 fastcopy-chaindata
 -------------------
 
