@@ -14,6 +14,7 @@ GIT = os.getenv('GIT','git')
 BASH = os.getenv('BASH','bash')
 # Other configuration
 SRCREPO = os.getenv('SRCREPO', '../bitcoin')
+BRANCH = os.getenv('BRANCH', 'master')
 
 def ask_prompt(text):
     print(text,end=" ",file=sys.stderr)
@@ -33,7 +34,7 @@ execute = True
 
 pulls = set(pulls)
 repo = git.Repo(SRCREPO)
-head = repo.heads['master']
+head = repo.heads[BRANCH]
 
 commit = head.commit
 to_backport = []
