@@ -21,11 +21,11 @@ likely needs to be extensively manually edited before ending up in the release
 notes.
 '''
 # W.J. van der Laan 2017-2021
+# The Bitcoin Core developers 2017-2021, 2025
 # SPDX-License-Identifier: MIT
 import subprocess
 import re
 import json
-import time
 import sys, os
 from collections import namedtuple, defaultdict
 
@@ -463,4 +463,3 @@ data_out = {
 with open('pulls.json','w') as f:
     json.dump(data_out, f, sort_keys=True,
                            indent=4, separators=(',', ': '))
-
