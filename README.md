@@ -34,6 +34,8 @@ pull request gets updated while you're reviewing it, but before you click
 merge), and when using GPG signatures, that even a compromised GitHub
 couldn't mess with the sources.
 
+Optionally, the git pre-push hook to verify commits can be used, see `./pre-push-hook.sh`.
+
 ### Setup
 
 Configuring the github-merge tool for the bitcoin repository is done in the following way:
