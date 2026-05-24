@@ -1,26 +1,31 @@
 class Attr:
-    '''
+    """
     Terminal output attributes.
-    '''
+    """
+    @staticmethod
     def fg(r, g, b):
         return f'\x1b[38;2;{r};{g};{b}m'
 
+    @staticmethod
     def bg(r, g, b):
         return f'\x1b[48;2;{r};{g};{b}m'
 
+    @staticmethod
     def fg_hex(color):
         if color[0] == '#':
             color = color[1:]
-        assert(len(color) == 6)
+        assert len(color) == 6
         return Attr.fg(int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16))
 
+    @staticmethod
     def bg_hex(color):
         if color[0] == '#':
             color = color[1:]
-        assert(len(color) == 6)
+        assert len(color) == 6
         return Attr.bg(int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16))
 
-    def close(attr):
+    @staticmethod
+    def close():
         # Close an attribute (restore terminal to "neutral")
         return Attr.RESET
 
