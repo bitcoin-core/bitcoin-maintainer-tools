@@ -245,16 +245,20 @@ def postprocess_translations(xliff_compatible_mode, reduce_diff_hacks=False):
             continue
 
         # write fixed-up tree
-        # if diff reduction requested, replace some XML to 'sanitize' to qt formatting
-        if reduce_diff_hacks:
-            out = io.BytesIO()
-            tree.write(out, encoding='utf-8')
-            out = out.getvalue()
-            out = out.replace(b' />', b'/>')
-            with open(filepath, 'wb') as f:
+        with open(filepath, 'wb') as f:
+            # Manually write the declaration and DOCTYPE first
+            f.write(b'<?xml version="1.0" encoding="utf-8"?>\n')
+            f.write(b'<!DOCTYPE TS>\n')
+
+            # if diff reduction requested, replace some XML to 'sanitize' to qt formatting
+            if reduce_diff_hacks:
+                out = io.BytesIO()
+                tree.write(out, encoding='utf-8', xml_declaration=False)
+                out = out.getvalue()
+                out = out.replace(b' />', b'/>')
                 f.write(out)
-        else:
-            tree.write(filepath, encoding='utf-8')
+            else:
+                tree.write(f, encoding='utf-8', xml_declaration=False)
 
 def update_git():
     '''
